@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "838203244132",
+    "project_id": "les-dracailles-fab",
+    "storage_bucket": "les-dracailles-fab.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:838203244132:android:7a751a385ab1e29b4de971",
+        "android_client_info": {
+          "package_name": "com.devmeup.fab_dracailles"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDpbAUEnt7CEKO3OG0cK6RWsyRMs2WkLUQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
