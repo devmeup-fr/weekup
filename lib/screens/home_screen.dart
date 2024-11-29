@@ -1,3 +1,7 @@
+import 'package:fab_dracailles/screens/match_list_screen.dart';
+import 'package:fab_dracailles/screens/match_screen.dart';
+import 'package:fab_dracailles/screens/player_list_screen.dart';
+import 'package:fab_dracailles/screens/tournament_list_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:motion_tab_bar/MotionTabBar.dart';
 import 'package:motion_tab_bar/MotionTabBarController.dart';
@@ -15,17 +19,26 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   final int _initTabBarIndex = 2;
 
   List<TabItem> tabs = [
-    TabItem(label: "Matches", icon: Icons.gamepad, badge: Container()),
     TabItem(
-      label: "Tournois",
-      icon: Icons.tab,
-      badge: Container(),
-    ),
+        label: "Match",
+        icon: Icons.gamepad,
+        badge: Container(),
+        screen: const MatchScreen()),
     TabItem(
-      label: "Joueurs",
-      icon: Icons.people,
-      badge: Container(),
-    ),
+        label: "Matches",
+        icon: Icons.toc,
+        badge: Container(),
+        screen: const MatchListScreen()),
+    TabItem(
+        label: "Tournois",
+        icon: Icons.tab,
+        badge: Container(),
+        screen: const TournamentListScreen()),
+    TabItem(
+        label: "Joueurs",
+        icon: Icons.people,
+        badge: Container(),
+        screen: const PlayerListScreen()),
   ];
 
   @override
@@ -47,13 +60,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Les Dracailles FaB")),
       body: Center(
-        child: _currentIndex == 0
-            ? const Text("Écran des Matches")
-            : _currentIndex == 1
-                ? const Text("Écran des Tournois")
-                : const Text("Écran des Joueurs"),
+        child: tabs[_currentIndex].screen,
       ),
       bottomNavigationBar: MotionTabBar(
         controller: _motionTabController,
@@ -91,6 +99,11 @@ class TabItem {
   final String label;
   final IconData icon;
   final Widget badge;
+  final Widget screen;
 
-  TabItem({required this.label, required this.icon, required this.badge});
+  TabItem(
+      {required this.label,
+      required this.icon,
+      required this.badge,
+      required this.screen});
 }

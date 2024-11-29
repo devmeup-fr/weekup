@@ -2,10 +2,15 @@ import 'package:flutter/material.dart';
 
 class LifeTrackerWidget extends StatefulWidget {
   final String playerName;
+  final Color backgroundColor;
   final int initialLife;
 
-  const LifeTrackerWidget(
-      {super.key, required this.playerName, this.initialLife = 40});
+  const LifeTrackerWidget({
+    super.key,
+    required this.playerName,
+    required this.backgroundColor,
+    this.initialLife = 40,
+  });
 
   @override
   _LifeTrackerWidgetState createState() => _LifeTrackerWidgetState();
@@ -26,35 +31,91 @@ class _LifeTrackerWidgetState extends State<LifeTrackerWidget> {
     });
   }
 
+  void _resetLife() {
+    setState(() {
+      _currentLife = widget.initialLife;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.all(8.0),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            widget.playerName,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          Text(
-            'Points de vie : $_currentLife',
-            style: TextStyle(fontSize: 16, color: Colors.grey[700]),
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.add),
-                onPressed: () => _adjustLife(1),
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => _adjustLife(1),
+        onLongPress: () => _adjustLife(5),
+        child: Stack(
+          children: [
+            Container(
+              color: widget.backgroundColor,
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      widget.playerName,
+                      style: const TextStyle(
+                        fontSize: 24,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      '$_currentLife',
+                      style: const TextStyle(
+                        fontSize: 60,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              IconButton(
-                icon: const Icon(Icons.remove),
-                onPressed: () => _adjustLife(-1),
-              ),
-            ],
-          ),
-        ],
+            ),
+            Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => _adjustLife(-1),
+                    onLongPress: () => _adjustLife(-5),
+                    child: Container(
+                      color: Colors.transparent,
+                      child: Center(
+                        child: Text(
+                          '-',
+                          style: TextStyle(
+                            fontSize: 40,
+                            color: Colors.white.withOpacity(0.8),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => _adjustLife(1),
+                    onLongPress: () => _adjustLife(5),
+                    child: Container(
+                      color: Colors.transparent,
+                      child: Center(
+                        child: Text(
+                          '+',
+                          style: TextStyle(
+                            fontSize: 40,
+                            color: Colors.white.withOpacity(0.8),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
