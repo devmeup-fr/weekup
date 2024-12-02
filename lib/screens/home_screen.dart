@@ -15,8 +15,8 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   late MotionTabBarController _motionTabController;
-  int _currentIndex = 2;
-  final int _initTabBarIndex = 2;
+  int _currentIndex = 0;
+  final int _initTabBarIndex = 0;
 
   List<TabItem> tabs = [
     TabItem(

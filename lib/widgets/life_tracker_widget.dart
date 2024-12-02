@@ -1,23 +1,28 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 class LifeTrackerWidget extends StatefulWidget {
   final String playerName;
   final Color backgroundColor;
   final int initialLife;
+  final void Function(int amount) onLifeChanged;
 
   const LifeTrackerWidget({
     super.key,
     required this.playerName,
     required this.backgroundColor,
     this.initialLife = 40,
+    required this.onLifeChanged,
   });
 
   @override
-  _LifeTrackerWidgetState createState() => _LifeTrackerWidgetState();
+  LifeTrackerWidgetState createState() => LifeTrackerWidgetState();
 }
 
-class _LifeTrackerWidgetState extends State<LifeTrackerWidget> {
+class LifeTrackerWidgetState extends State<LifeTrackerWidget> {
   late int _currentLife;
+  Timer? _longPressTimer;
 
   @override
   void initState() {
@@ -27,14 +32,32 @@ class _LifeTrackerWidgetState extends State<LifeTrackerWidget> {
 
   void _adjustLife(int amount) {
     setState(() {
-      _currentLife += amount;
+      // Vérifie si la vie ne descend pas en dessous de -20
+      if (_currentLife + amount >= -20) {
+        _currentLife += amount;
+        widget.onLifeChanged(amount);
+      }
     });
   }
 
-  void _resetLife() {
+  void resetLife() {
     setState(() {
-      _currentLife = widget.initialLife;
+      _currentLife = 40;
     });
+  }
+
+  void _startLongPressTimer(int amount) {
+    _adjustLife(amount);
+    // Start a timer that triggers every second while the user is pressing
+    _longPressTimer =
+        Timer.periodic(const Duration(milliseconds: 500), (timer) {
+      _adjustLife(amount); // Adjust life by 5 every second
+    });
+  }
+
+  void _stopLongPressTimer() {
+    // Cancel the timer when the user releases the press
+    _longPressTimer?.cancel();
   }
 
   @override
@@ -42,7 +65,12 @@ class _LifeTrackerWidgetState extends State<LifeTrackerWidget> {
     return Expanded(
       child: GestureDetector(
         onTap: () => _adjustLife(1),
-        onLongPress: () => _adjustLife(5),
+        onLongPressStart: (details) =>
+            _startLongPressTimer(5), // Start timer on long press
+        onLongPressEnd: (_) =>
+            _stopLongPressTimer(), // Stop timer when long press ends
+        onLongPressCancel: () =>
+            _stopLongPressTimer(), // Stop timer if the press is canceled
         child: Stack(
           children: [
             Container(
@@ -63,7 +91,7 @@ class _LifeTrackerWidgetState extends State<LifeTrackerWidget> {
                     Text(
                       '$_currentLife',
                       style: const TextStyle(
-                        fontSize: 60,
+                        fontSize: 150,
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
                       ),
@@ -77,7 +105,10 @@ class _LifeTrackerWidgetState extends State<LifeTrackerWidget> {
                 Expanded(
                   child: GestureDetector(
                     onTap: () => _adjustLife(-1),
-                    onLongPress: () => _adjustLife(-5),
+                    onLongPressStart: (details) => _startLongPressTimer(
+                        -5), // Start timer to subtract life
+                    onLongPressEnd: (_) => _stopLongPressTimer(),
+                    onLongPressCancel: () => _stopLongPressTimer(),
                     child: Container(
                       color: Colors.transparent,
                       child: Center(
@@ -96,7 +127,10 @@ class _LifeTrackerWidgetState extends State<LifeTrackerWidget> {
                 Expanded(
                   child: GestureDetector(
                     onTap: () => _adjustLife(1),
-                    onLongPress: () => _adjustLife(5),
+                    onLongPressStart: (details) =>
+                        _startLongPressTimer(5), // Start timer to add life
+                    onLongPressEnd: (_) => _stopLongPressTimer(),
+                    onLongPressCancel: () => _stopLongPressTimer(),
                     child: Container(
                       color: Colors.transparent,
                       child: Center(
