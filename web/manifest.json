@@ -1,6 +1,6 @@
 {
-    "name": "fab_dracailles",
-    "short_name": "fab_dracailles",
+    "name": "my_alarms",
+    "short_name": "my_alarms",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

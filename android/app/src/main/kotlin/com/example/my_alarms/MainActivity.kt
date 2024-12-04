@@ -1,4 +1,4 @@
-package com.devmeup.fab_dracailles
+package com.devmeup.my_alarms
 
 import io.flutter.embedding.android.FlutterActivity
 
