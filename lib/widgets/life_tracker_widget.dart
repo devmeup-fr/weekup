@@ -29,7 +29,7 @@ class LifeTrackerWidgetState extends State<LifeTrackerWidget> {
 
   void _adjustLife(int amount) {
     setState(() {
-      if (widget.gamePlayer.life + amount > 0) {
+      if (widget.gamePlayer.life + amount >= -10) {
         widget.gamePlayer.adjustLife(amount);
         widget.onLifeChanged(amount);
       }

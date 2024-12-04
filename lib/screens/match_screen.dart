@@ -64,6 +64,7 @@ class _MatchScreenState extends State<MatchScreen>
     _players[0].life = 40;
     _players[1].life = 40;
     setState(() {
+      _history = [];
       _timeLeft = _timerDuration; // Reset the timer
       _timerStarted = false; // Allow the timer to be started again
     });
@@ -225,23 +226,25 @@ class _MatchScreenState extends State<MatchScreen>
                 const Text("Match Type"),
                 DropdownButton<String>(
                   value: _matchType,
+                  dropdownColor: Colors.white,
+                  focusColor: Colors.white,
                   items: const [
                     DropdownMenuItem(
-                      value: "Standard",
-                      child: Text("Standard"),
+                      value: "Classic Constructed",
+                      child: Text("Classic Constructed"),
                     ),
                     DropdownMenuItem(
-                      value: "Tournament",
-                      child: Text("Tournament"),
+                      value: "Blitz",
+                      child: Text("Blitz"),
                     ),
                   ],
                   onChanged: (value) {
                     if (value != null) {
                       setState(() {
                         _matchType = value;
-                        _timerDuration = value == "Standard"
-                            ? 50 * 60
-                            : 30 * 60; // 50 minutes or 1 hour
+                        _timerDuration = value == "Classic Constructed"
+                            ? 55 * 60
+                            : 35 * 60; // 50 minutes or 1 hour
                         _timeLeft = _timerDuration; // Reset timer duration
                       });
                     }
