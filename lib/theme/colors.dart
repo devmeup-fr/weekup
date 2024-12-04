@@ -28,4 +28,16 @@ class ThemeColors {
 
   static const backgroundColor = Color.fromRGBO(241, 241, 241, 1);
   static const tabBackgroundColor = Color.fromRGBO(253, 233, 205, 1);
+
+  static const colorsPlayerGame = [
+    Color.fromRGBO(95, 46, 46, 1),
+    Color.fromRGBO(104, 153, 255, 1),
+    Color.fromRGBO(218, 74, 74, 1),
+    Color.fromRGBO(230, 136, 10, 1),
+    Color.fromRGBO(255, 165, 0, 1),
+    Color.fromRGBO(153, 104, 255, 1),
+    Color.fromRGBO(255, 204, 153, 1),
+    Color.fromRGBO(153, 255, 204, 1),
+    Color.fromRGBO(255, 153, 153, 1),
+  ];
 }

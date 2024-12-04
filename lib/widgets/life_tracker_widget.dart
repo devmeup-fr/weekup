@@ -1,18 +1,17 @@
 import 'dart:async';
 
+import 'package:fab_dracailles/models/game_player_model.dart';
 import 'package:flutter/material.dart';
 
 class LifeTrackerWidget extends StatefulWidget {
-  final String playerName;
-  final Color backgroundColor;
-  final int initialLife;
+  final GamePlayer gamePlayer;
+  final bool invertMode;
   final void Function(int amount) onLifeChanged;
 
   const LifeTrackerWidget({
     super.key,
-    required this.playerName,
-    required this.backgroundColor,
-    this.initialLife = 40,
+    required this.gamePlayer,
+    this.invertMode = false,
     required this.onLifeChanged,
   });
 
@@ -21,20 +20,17 @@ class LifeTrackerWidget extends StatefulWidget {
 }
 
 class LifeTrackerWidgetState extends State<LifeTrackerWidget> {
-  late int _currentLife;
   Timer? _longPressTimer;
 
   @override
   void initState() {
     super.initState();
-    _currentLife = widget.initialLife;
   }
 
   void _adjustLife(int amount) {
     setState(() {
-      // Vérifie si la vie ne descend pas en dessous de -20
-      if (_currentLife + amount >= -20) {
-        _currentLife += amount;
+      if (widget.gamePlayer.life + amount > 0) {
+        widget.gamePlayer.adjustLife(amount);
         widget.onLifeChanged(amount);
       }
     });
@@ -42,45 +38,40 @@ class LifeTrackerWidgetState extends State<LifeTrackerWidget> {
 
   void resetLife() {
     setState(() {
-      _currentLife = 40;
+      widget.gamePlayer.resetLife();
     });
   }
 
   void _startLongPressTimer(int amount) {
     _adjustLife(amount);
-    // Start a timer that triggers every second while the user is pressing
     _longPressTimer =
         Timer.periodic(const Duration(milliseconds: 500), (timer) {
-      _adjustLife(amount); // Adjust life by 5 every second
+      _adjustLife(amount);
     });
   }
 
   void _stopLongPressTimer() {
-    // Cancel the timer when the user releases the press
     _longPressTimer?.cancel();
   }
 
   @override
   Widget build(BuildContext context) {
     return Expanded(
-      child: GestureDetector(
-        onTap: () => _adjustLife(1),
-        onLongPressStart: (details) =>
-            _startLongPressTimer(5), // Start timer on long press
-        onLongPressEnd: (_) =>
-            _stopLongPressTimer(), // Stop timer when long press ends
-        onLongPressCancel: () =>
-            _stopLongPressTimer(), // Stop timer if the press is canceled
-        child: Stack(
-          children: [
-            Container(
-              color: widget.backgroundColor,
-              child: Center(
+      child: Transform(
+        alignment: Alignment.center,
+        transform: widget.invertMode
+            ? Matrix4.rotationZ(3.14159) // 180° rotation
+            : Matrix4.identity(),
+        child: Container(
+          color: widget.gamePlayer.color,
+          child: Stack(
+            children: [
+              Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      widget.playerName,
+                      widget.gamePlayer.name,
                       style: const TextStyle(
                         fontSize: 24,
                         color: Colors.white,
@@ -88,67 +79,72 @@ class LifeTrackerWidgetState extends State<LifeTrackerWidget> {
                       ),
                     ),
                     const SizedBox(height: 10),
-                    Text(
-                      '$_currentLife',
-                      style: const TextStyle(
-                        fontSize: 150,
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Padding(
+                          padding: EdgeInsets.only(right: 40.0),
+                          child: Text(
+                            '-',
+                            style: TextStyle(
+                              fontSize: 40,
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          widget.gamePlayer.life.toString(),
+                          style: const TextStyle(
+                            fontSize: 150,
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const Padding(
+                          padding: EdgeInsets.only(left: 40.0),
+                          child: Text(
+                            '+',
+                            style: TextStyle(
+                              fontSize: 40,
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
-            ),
-            Row(
-              children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => _adjustLife(-1),
-                    onLongPressStart: (details) => _startLongPressTimer(
-                        -5), // Start timer to subtract life
-                    onLongPressEnd: (_) => _stopLongPressTimer(),
-                    onLongPressCancel: () => _stopLongPressTimer(),
-                    child: Container(
-                      color: Colors.transparent,
-                      child: Center(
-                        child: Text(
-                          '-',
-                          style: TextStyle(
-                            fontSize: 40,
-                            color: Colors.white.withOpacity(0.8),
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+              Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => _adjustLife(-1),
+                      onLongPressStart: (_) => _startLongPressTimer(-5),
+                      onLongPressEnd: (_) => _stopLongPressTimer(),
+                      onLongPressCancel: () => _stopLongPressTimer(),
+                      child: Container(
+                        color: Colors.transparent,
                       ),
                     ),
                   ),
-                ),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => _adjustLife(1),
-                    onLongPressStart: (details) =>
-                        _startLongPressTimer(5), // Start timer to add life
-                    onLongPressEnd: (_) => _stopLongPressTimer(),
-                    onLongPressCancel: () => _stopLongPressTimer(),
-                    child: Container(
-                      color: Colors.transparent,
-                      child: Center(
-                        child: Text(
-                          '+',
-                          style: TextStyle(
-                            fontSize: 40,
-                            color: Colors.white.withOpacity(0.8),
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => _adjustLife(1),
+                      onLongPressStart: (_) => _startLongPressTimer(5),
+                      onLongPressEnd: (_) => _stopLongPressTimer(),
+                      onLongPressCancel: () => _stopLongPressTimer(),
+                      child: Container(
+                        color: Colors.transparent,
                       ),
                     ),
                   ),
-                ),
-              ],
-            ),
-          ],
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

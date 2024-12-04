@@ -1,7 +1,9 @@
 import 'dart:async';
 
+import 'package:fab_dracailles/theme/colors.dart';
 import 'package:flutter/material.dart';
 
+import '../models/game_player_model.dart';
 import '../widgets/life_tracker_widget.dart';
 
 class MatchScreen extends StatefulWidget {
@@ -19,32 +21,29 @@ class _MatchScreenState extends State<MatchScreen>
   final GlobalKey<LifeTrackerWidgetState> _player1Key = GlobalKey();
   final GlobalKey<LifeTrackerWidgetState> _player2Key = GlobalKey();
 
-  late List<Map<String, dynamic>> _players;
+  late List<GamePlayer> _players;
   late List<String> _history;
 
   String _matchType = "Standard";
   final int _dieSides = 6;
   int _rolledNumber = 1;
   bool _rolling = false;
-  int _timerDuration = 50 * 60; // 50 minutes in seconds
-  int _timeLeft = 50 * 60; // Timer duration in seconds
+  int _timerDuration = 55 * 60; // 50 minutes in seconds
+  int _timeLeft = 55 * 60; // Timer duration in seconds
   Timer? _timer;
   bool _timerStarted = false; // Track if the timer has started
+  final List<Color> _colorsToSelect = ThemeColors.colorsPlayerGame;
 
   void initGame() {
     _players = [
-      {
-        'name': 'Joueur 1',
-        'color': Colors.blueAccent,
-        'life': 40,
-        'key': _player1Key
-      },
-      {
-        'name': 'Joueur 2',
-        'color': Colors.purpleAccent,
-        'life': 40,
-        'key': _player2Key
-      },
+      GamePlayer(
+        name: 'Joueur 1',
+        color: _colorsToSelect[0],
+      ),
+      GamePlayer(
+        name: 'Joueur 2',
+        color: _colorsToSelect[1],
+      ),
     ];
     _history = [];
   }
@@ -62,20 +61,13 @@ class _MatchScreenState extends State<MatchScreen>
   }
 
   void _resetGame() {
-    initGame();
+    _players[0].life = 40;
+    _players[1].life = 40;
     setState(() {
-      _player1Key.currentState?.resetLife();
-      _player2Key.currentState?.resetLife();
       _timeLeft = _timerDuration; // Reset the timer
       _timerStarted = false; // Allow the timer to be started again
     });
-    _timer?.cancel(); // Cancel any active timer
-  }
-
-  void _updateLife(int playerIndex, int newLife) {
-    setState(() {
-      _players[playerIndex]['life'] = newLife;
-    });
+    _timer?.cancel();
   }
 
   void _reversePlayers() {
@@ -128,7 +120,7 @@ class _MatchScreenState extends State<MatchScreen>
           mainAxisSize: MainAxisSize.min,
           children: _players.asMap().entries.map((entry) {
             int index = entry.key;
-            Map<String, dynamic> player = entry.value;
+            GamePlayer player = entry.value;
 
             return Padding(
               padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -137,10 +129,10 @@ class _MatchScreenState extends State<MatchScreen>
                   Expanded(
                     child: Container(
                       height: 40,
-                      color: player['color'],
+                      color: player.color,
                       alignment: Alignment.center,
                       child: Text(
-                        player['name'],
+                        player.name,
                         style: const TextStyle(color: Colors.white),
                       ),
                     ),
@@ -171,21 +163,14 @@ class _MatchScreenState extends State<MatchScreen>
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text("Changer la couleur de ${_players[playerIndex]['name']}"),
+        title: Text("Changer la couleur de ${_players[playerIndex].name}"),
         content: Wrap(
           spacing: 10,
-          children: [
-            Colors.red,
-            Colors.green,
-            Colors.blue,
-            Colors.yellow,
-            Colors.orange,
-            Colors.purple,
-          ].map((color) {
+          children: _colorsToSelect.map((color) {
             return GestureDetector(
               onTap: () {
                 setState(() {
-                  _players[playerIndex]['color'] = color;
+                  _players[playerIndex].color = color;
                 });
                 Navigator.of(context).pop();
                 Navigator.of(context).pop();
@@ -278,12 +263,15 @@ class _MatchScreenState extends State<MatchScreen>
   }
 
   void startTimer() {
+    _timeLeft = _timerDuration; // Reset timer to match duration
     setState(() {
-      _timeLeft = _timerDuration; // Reset timer to match duration
+      _timeLeft--; // Reset timer to match duration
       _timerStarted = true; // Disable logo click
     });
 
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!_timerStarted) return;
+
       setState(() {
         if (_timeLeft > 0) {
           _timeLeft--;
@@ -291,6 +279,12 @@ class _MatchScreenState extends State<MatchScreen>
           _timer!.cancel(); // Stop timer when it reaches zero
         }
       });
+    });
+  }
+
+  void toggleTimer() {
+    setState(() {
+      _timerStarted = !_timerStarted;
     });
   }
 
@@ -302,6 +296,7 @@ class _MatchScreenState extends State<MatchScreen>
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Scaffold(
       body: Stack(
         children: [
@@ -309,25 +304,18 @@ class _MatchScreenState extends State<MatchScreen>
           Column(
             children: [
               LifeTrackerWidget(
-                key: _players[0]['key'],
-                playerName: _players[0]['name'] as String,
-                backgroundColor: _players[0]['color'] as Color,
-                initialLife: _players[0]['life'] as int,
+                gamePlayer: _players[0],
+                invertMode: true,
                 onLifeChanged: (amount) {
-                  _updateLife(0, amount);
                   addToHistory(
-                      "${_players[0]['name']} ${amount > 0 ? "gained" : "lost"} ${amount.abs()} life");
+                      "${_players[0].name} ${amount > 0 ? "gained" : "lost"} ${amount.abs()} life");
                 },
               ),
               LifeTrackerWidget(
-                key: _players[1]['key'],
-                playerName: _players[1]['name'] as String,
-                backgroundColor: _players[1]['color'] as Color,
-                initialLife: _players[1]['life'] as int,
+                gamePlayer: _players[1],
                 onLifeChanged: (amount) {
-                  _updateLife(1, amount);
                   addToHistory(
-                      "${_players[1]['name']} ${amount > 0 ? "gained" : "lost"} ${amount.abs()} life");
+                      "${_players[1].name} ${amount > 0 ? "gained" : "lost"} ${amount.abs()} life");
                 },
               ),
             ],
@@ -363,9 +351,7 @@ class _MatchScreenState extends State<MatchScreen>
                           ),
                           IconButton(
                             onPressed: _rollDie,
-                            icon: _rolling
-                                ? const CircularProgressIndicator()
-                                : const Icon(Icons.casino, size: 30),
+                            icon: const Icon(Icons.casino, size: 30),
                             tooltip: "Roll Die",
                           ),
                         ],
@@ -399,9 +385,9 @@ class _MatchScreenState extends State<MatchScreen>
                 Positioned(
                   top: -37, // Adjust to ensure overlap
                   child: GestureDetector(
-                    onTap: !_timerStarted
+                    onTap: _timerDuration == _timeLeft
                         ? startTimer
-                        : null, // Disable logo tap after start
+                        : toggleTimer, // Disable logo tap after start
                     child: Container(
                       padding: const EdgeInsets.all(20),
                       decoration: const BoxDecoration(
@@ -410,11 +396,23 @@ class _MatchScreenState extends State<MatchScreen>
                       ),
                       child: Column(
                         children: [
-                          Image.asset(
-                            'assets/images/logo_dracailles_min.png',
-                            height: 100,
+                          Stack(
+                            children: [
+                              Image.asset(
+                                'assets/images/logo_dracailles_min.png',
+                                height: 100,
+                              ),
+                              if (!_timerStarted && _timerDuration != _timeLeft)
+                                Center(
+                                  child: Icon(
+                                    Icons.pause_circle_filled,
+                                    size: 100,
+                                    color: Colors.white.withOpacity(0.8),
+                                  ),
+                                ),
+                            ],
                           ),
-                          if (_timerStarted)
+                          if (_timerDuration != _timeLeft)
                             Text(
                               '${_timeLeft ~/ 60}:${(_timeLeft % 60).toString().padLeft(2, '0')}',
                               style: const TextStyle(
