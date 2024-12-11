@@ -63,6 +63,7 @@ extension DateFormatExtension on DateTime {
   String formatDate() => DateFormat('dd/MM/yyyy HH:mm:ss').format(this);
   String formatDateDayMonth() => DateFormat('dd/MM').format(this);
   String formatDateDay() => DateFormat('dd/MM/yyyy').format(this);
+  String formatDateMin(local) => DateFormat('EEE d MMM', local).format(this);
   String formatDateHour() => DateFormat('HH:mm:ss').format(this);
   String formatTime() => DateFormat('HH:mm').format(this);
   String formatDayOfWeek() => DateFormat('dddd').format(this);

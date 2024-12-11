@@ -42,10 +42,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> loadAlarms() async {
     final loadedAlarms = await alarmService.getAlarms();
-    print(
-      "🚀 ~ _HomeScreenState ~ Future<void>loadAlarms ~ loadedAlarms:",
-    );
-    print(loadedAlarms);
     setState(() {
       alarms = loadedAlarms;
     });
@@ -61,7 +57,7 @@ class _HomeScreenState extends State<HomeScreen> {
     unawaited(loadAlarms());
   }
 
-  Future<void> navigateToAlarmScreen(AlarmModel? alarm) async {
+  Future<void> navigateToAlarmScreen(AlarmModel? alarm, {int? index}) async {
     final res = await showModalBottomSheet<bool?>(
       context: context,
       isScrollControlled: true,
@@ -71,7 +67,10 @@ class _HomeScreenState extends State<HomeScreen> {
       builder: (context) {
         return FractionallySizedBox(
           heightFactor: 0.75,
-          child: AlarmEditScreen(alarm: alarm),
+          child: AlarmEditScreen(
+            alarm: alarm,
+            index: index,
+          ),
         );
       },
     );
@@ -106,13 +105,21 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: AlarmTile(
                           key: Key(alarms[index].id.toString()),
                           alarm: alarms[index],
-                          onPressed: () => navigateToAlarmScreen(alarms[index]),
+                          onPressed: () => navigateToAlarmScreen(alarms[index],
+                              index: index),
                           onDismissed: () {
                             alarmService
                                 .deleteAlarm(index)
                                 .then((_) => loadAlarms());
                           },
-                          onToggleActive: (value) {}),
+                          onToggleActive: (value) {
+                            setState(() {
+                              alarms[index].isActive = value;
+                            });
+                            alarmService
+                                .editAlarm(alarms[index], index)
+                                .then((_) => loadAlarms());
+                          }),
                     );
                   },
                 )

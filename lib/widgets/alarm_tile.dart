@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:my_alarms/core/blocs/locale_cubit.dart';
+import 'package:my_alarms/core/utils/extension_util.dart';
+import 'package:my_alarms/core/utils/localization_util.dart';
 import 'package:my_alarms/models/alarm_model.dart';
 
 class AlarmTile extends StatelessWidget {
@@ -7,16 +11,13 @@ class AlarmTile extends StatelessWidget {
     required this.onPressed,
     super.key,
     this.onDismissed,
-    this.isActive = false,
-    required this.onToggleActive, // Function to handle the toggle action
+    required this.onToggleActive,
   });
 
   final AlarmModel alarm;
   final void Function() onPressed;
   final void Function()? onDismissed;
-  final bool isActive;
-  final void Function(bool)
-      onToggleActive; // New function to handle activation/deactivation
+  final void Function(bool) onToggleActive;
 
   @override
   Widget build(BuildContext context) {
@@ -43,60 +44,97 @@ class AlarmTile extends StatelessWidget {
           elevation: 0,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Icône ou indicateur pour l'alarme
-                Icon(
-                  Icons.alarm_rounded,
-                  size: 30,
-                  color:
-                      isActive ? Colors.white : Colors.white.withOpacity(0.3),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.alarm_rounded,
+                      size: 30,
+                      color: alarm.isActive
+                          ? Colors.white
+                          : Colors.white.withOpacity(0.3),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (alarm.title != null && alarm.title != "")
+                            Text(
+                              alarm.title!,
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: alarm.isActive
+                                    ? Colors.grey.shade600
+                                    : Colors.grey.shade600.withOpacity(0.3),
+                              ),
+                            ),
+                          if (alarm.title != null && alarm.title != "")
+                            const SizedBox(height: 4),
+                          Text(
+                            alarm.time.formatTime(),
+                            style: TextStyle(
+                              fontSize: 48,
+                              color: alarm.isActive
+                                  ? Colors.white
+                                  : Colors.white.withOpacity(0.3),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Switch(
+                      value: alarm.isActive,
+                      onChanged: (value) {
+                        onToggleActive(value);
+                      },
+                      activeColor: Colors.white,
+                      inactiveTrackColor: Colors.grey,
+                    ),
+                    const Icon(
+                      Icons.keyboard_arrow_right_rounded,
+                      size: 35,
+                      color: Colors.grey,
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 16),
-                // Informations principales
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        alarm.title,
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: List.generate(7, (index) {
+                    final isSelected = alarm.selectedDays.length > index
+                        ? alarm.selectedDays[index]
+                        : false;
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: Text(
+                        context.translate('day_${index + 1}'),
                         style: TextStyle(
-                          color: isActive
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: isSelected
                               ? Colors.white
-                              : Colors.white.withOpacity(
-                                  0.3), // Change text color based on active state
-                          fontSize: 48,
+                              : Colors.white.withOpacity(0.3),
                         ),
                       ),
-                      if (alarm.subtitle != null) const SizedBox(height: 4),
-                      if (alarm.subtitle != null)
-                        Text(
-                          alarm.subtitle!,
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: isActive
-                                ? Colors.grey.shade600
-                                : Colors.grey.shade600
-                                    .withOpacity(0.3), // Adjust subtitle color
-                          ),
-                        ),
-                    ],
+                    );
+                  }),
+                ),
+                const SizedBox(height: 8),
+                BlocBuilder<LocaleCubit, Locale>(
+                  builder: (context, state) => Text(
+                    alarm
+                            .getNextOccurrence()
+                            ?.formatDateMin(state.languageCode) ??
+                        '',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey,
+                    ),
                   ),
-                ),
-                // Toggle switch to activate/deactivate the alarm
-                Switch(
-                  value: isActive,
-                  onChanged: (value) {
-                    onToggleActive(
-                        value); // Notify parent to update alarm state
-                  },
-                  activeColor: Colors.green,
-                ),
-                const Icon(
-                  Icons.keyboard_arrow_right_rounded,
-                  size: 35,
-                  color: Colors.grey,
-                ),
+                )
               ],
             ),
           ),
