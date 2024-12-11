@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:alarm/alarm.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -10,7 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/blocs/locale_cubit.dart';
 import 'core/utils/localization_util.dart';
-import 'screens/exemple_alarm_home_screen.dart';
+import 'screens/home_screen.dart';
 import 'theme/themes.dart';
 
 // ignore: constant_identifier_names
@@ -22,24 +20,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   await Alarm.init();
-  final alarmSettings = AlarmSettings(
-    id: 42,
-    dateTime: DateTime.now().add(Duration(seconds: 10)),
-    assetAudioPath: 'assets/musics/alarm.mp3',
-    loopAudio: true,
-    vibrate: true,
-    volume: 0.8,
-    fadeDuration: 3.0,
-    warningNotificationOnKill: Platform.isIOS,
-    androidFullScreenIntent: true,
-    notificationSettings: const NotificationSettings(
-      title: 'This is the title',
-      body: 'This is the body',
-      stopButton: 'Stop the alarm',
-      icon: 'notification_icon',
-    ),
-  );
-  await Alarm.set(alarmSettings: alarmSettings);
+
   // CLEAN PREF USE
   if (WITH_CLEAN_PREF) {
     await handlerCleanPref();
@@ -84,8 +65,7 @@ class MyApp extends StatelessWidget {
               onGenerateTitle: (BuildContext context) =>
                   context.translate("common.appTitle"),
               theme: Themes.light(),
-              home: const PopScope(
-                  canPop: false, child: ExampleAlarmHomeScreen()),
+              home: const PopScope(canPop: false, child: HomeScreen()),
             ));
   }
 }
