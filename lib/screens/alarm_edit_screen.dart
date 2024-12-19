@@ -14,6 +14,8 @@ class AlarmEditScreen extends StatefulWidget {
 }
 
 class _AlarmEditScreenState extends State<AlarmEditScreen> {
+  late FixedExtentScrollController _scrollMinController;
+  late FixedExtentScrollController _scrollHourController;
   late AlarmService alarmService;
   bool loading = false;
 
@@ -55,32 +57,18 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
           List.filled(7, false); // Charger les jours ici si disponible
       recurrenceWeeks = 1; // Charger les semaines ici si disponible
     }
+    _scrollHourController =
+        FixedExtentScrollController(initialItem: selectedDateTime.hour);
+    _scrollMinController =
+        FixedExtentScrollController(initialItem: selectedDateTime.minute);
   }
 
-  // AlarmSettings buildAlarmSettings() {
-  //   final id = creating
-  //       ? DateTime.now().millisecondsSinceEpoch % 10000 + 1
-  //       : widget.alarm!.id;
-
-  //   final alarmSettings = AlarmSettings(
-  //     id: id,
-  //     dateTime: selectedDateTime,
-  //     loopAudio: loopAudio,
-  //     vibrate: vibrate,
-  //     volume: volume,
-  //     fadeDuration: fadeDuration,
-  //     assetAudioPath: assetAudio,
-  //     notificationSettings: NotificationSettings(
-  //       title: context.translate('alarm_notification_title'),
-  //       body: context.translate('alarm_notification_body',
-  //           translationParams: {"id": id.toString()}),
-  //       stopButton: context.translate('stop_alarm_button'),
-  //       icon: 'notification_icon',
-  //     ),
-  //   );
-
-  //   return alarmSettings;
-  // }
+  @override
+  void dispose() {
+    _scrollHourController.dispose();
+    _scrollMinController.dispose();
+    super.dispose();
+  }
 
   void saveAlarm() {
     if (loading) return;
@@ -126,6 +114,7 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
                   SizedBox(
                     height: 120, // Adjust height as needed
                     child: ListWheelScrollView.useDelegate(
+                      controller: _scrollHourController,
                       itemExtent: 40,
                       perspective: 0.003,
                       diameterRatio: 1.2,
@@ -142,7 +131,7 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
                             child: Text(
                               index.toString().padLeft(2, '0'),
                               style: TextStyle(
-                                fontSize: 24,
+                                fontSize: 36,
                                 fontWeight: isSelected
                                     ? FontWeight.bold
                                     : FontWeight.normal,
@@ -177,6 +166,7 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
                   SizedBox(
                     height: 120, // Adjust height as needed
                     child: ListWheelScrollView.useDelegate(
+                      controller: _scrollMinController,
                       itemExtent: 40,
                       perspective: 0.001,
                       diameterRatio: 1.2,
@@ -194,7 +184,7 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
                               child: Text(
                             index.toString().padLeft(2, '0'),
                             style: TextStyle(
-                              fontSize: 24,
+                              fontSize: 36,
                               fontWeight: isSelected
                                   ? FontWeight.bold
                                   : FontWeight.normal,
