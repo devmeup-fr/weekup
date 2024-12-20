@@ -124,15 +124,35 @@ class AlarmTile extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 BlocBuilder<LocaleCubit, Locale>(
-                  builder: (context, state) => Text(
-                    alarm
-                            .getNextOccurrence()
-                            ?.formatDateMin(state.languageCode) ??
-                        '',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey,
-                    ),
+                  builder: (context, state) => Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        alarm
+                                .getNextOccurrence()
+                                ?.formatDateMin(state.languageCode) ??
+                            '',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        context.translate(
+                          alarm.recurrenceWeeks == 1
+                              ? 'repeat_every_week'
+                              : 'x_weeks',
+                          translationParams: {
+                            'weeks': alarm.recurrenceWeeks.toString(),
+                          },
+                        ),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ],
                   ),
                 )
               ],

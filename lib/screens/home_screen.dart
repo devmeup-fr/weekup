@@ -35,9 +35,6 @@ class _HomeScreenState extends State<HomeScreen> {
     alarmService = AlarmService();
     unawaited(loadAlarms());
     ringSubscription ??= Alarm.ringStream.stream.listen(navigateToRingScreen);
-    // updateSubscription ??= Alarm.updateStream.stream.listen((_) {
-    //   unawaited(loadAlarms());
-    // });
   }
 
   Future<void> loadAlarms() async {
@@ -50,10 +47,13 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> navigateToRingScreen(AlarmSettings alarmSettings) async {
     await Navigator.push(
       context,
-      MaterialPageRoute<void>(
-        builder: (context) => AlarmRingScreen(alarmSettings: alarmSettings),
-      ),
+      MaterialPageRoute<void>(builder: (context) {
+        AlarmService().setNextAlarm(context);
+
+        return AlarmRingScreen(alarmSettings: alarmSettings);
+      }),
     );
+
     unawaited(loadAlarms());
   }
 
@@ -109,7 +109,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               index: index),
                           onDismissed: () {
                             alarmService
-                                .deleteAlarm(index)
+                                .deleteAlarm(context, index)
                                 .then((_) => loadAlarms());
                           },
                           onToggleActive: (value) {
@@ -117,7 +117,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               alarms[index].isActive = value;
                             });
                             alarmService
-                                .editAlarm(alarms[index], index)
+                                .editAlarm(context, alarms[index], index)
                                 .then((_) => loadAlarms());
                           }),
                     );
@@ -136,18 +136,13 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       floatingActionButton: Padding(
         padding: const EdgeInsets.all(10),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            FloatingActionButton(
-              onPressed: () => navigateToAlarmScreen(null),
-              backgroundColor: Theme.of(context).colorScheme.primary,
-              child: const Icon(Icons.alarm_add_rounded, size: 33),
-            ),
-          ],
+        child: FloatingActionButton(
+          onPressed: () => navigateToAlarmScreen(null),
+          backgroundColor: Theme.of(context).colorScheme.primary,
+          child: const Icon(Icons.alarm_add_rounded, size: 33),
         ),
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
   }
 }

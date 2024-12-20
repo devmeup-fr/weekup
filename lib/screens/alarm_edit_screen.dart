@@ -31,6 +31,14 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
   late List<bool> selectedDays;
   late int recurrenceWeeks;
 
+  final audioOptions = [
+    'assets/musics/marimba.mp3',
+    'assets/musics/mozart.mp3',
+    'assets/musics/nokia.mp3',
+    'assets/musics/one_piece.mp3',
+    'assets/musics/star_wars.mp3',
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -42,7 +50,7 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
       selectedDateTime = selectedDateTime.copyWith(second: 0, millisecond: 0);
       loopAudio = true;
       vibrate = true;
-      volume = null;
+      volume = 0.5;
       fadeDuration = 0;
       assetAudio = 'assets/musics/marimba.mp3';
       selectedDays =
@@ -53,9 +61,11 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
       loopAudio = widget.alarm!.loopAudio;
       vibrate = widget.alarm!.vibrate;
       volume = widget.alarm!.volume;
+      assetAudio = widget.alarm!.assetAudio;
       selectedDays =
-          List.filled(7, false); // Charger les jours ici si disponible
-      recurrenceWeeks = 1; // Charger les semaines ici si disponible
+          widget.alarm!.selectedDays; // Charger les jours ici si disponible
+      recurrenceWeeks = widget
+          .alarm!.recurrenceWeeks; // Charger les semaines ici si disponible
     }
     _scrollHourController =
         FixedExtentScrollController(initialItem: selectedDateTime.hour);
@@ -72,24 +82,52 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
 
   void saveAlarm() {
     if (loading) return;
-    setState(() => loading = true);
-    alarmService
-        .saveAlarm(AlarmModel(
-            id: widget.index ?? 0,
-            title: '',
-            time: selectedDateTime,
-            vibrate: vibrate,
-            volume: volume,
-            selectedDays: selectedDays,
-            recurrenceWeeks: recurrenceWeeks))
-        .then((res) {
-      if (mounted) Navigator.pop(context, true);
-      setState(() => loading = false);
-    });
+
+    if (creating) {
+      setState(() => loading = true);
+      alarmService
+          .saveAlarm(
+              context,
+              AlarmModel(
+                  id: widget.index ?? 1,
+                  title: '',
+                  time: selectedDateTime,
+                  vibrate: vibrate,
+                  volume: volume,
+                  assetAudio: assetAudio,
+                  selectedDays: selectedDays,
+                  recurrenceWeeks: recurrenceWeeks))
+          .then((res) {
+        if (mounted) {
+          Navigator.pop(context, true);
+        }
+        setState(() => loading = false);
+      });
+    } else {
+      alarmService
+          .editAlarm(
+              context,
+              AlarmModel(
+                  id: widget.index ?? 0,
+                  title: '',
+                  time: selectedDateTime,
+                  vibrate: vibrate,
+                  volume: volume,
+                  assetAudio: assetAudio,
+                  selectedDays: selectedDays,
+                  recurrenceWeeks: recurrenceWeeks),
+              widget.index ?? 0)
+          .then((res) {
+        if (mounted) {
+          Navigator.pop(context, true);
+        }
+        setState(() => loading = false);
+      });
+    }
   }
 
   void deleteAlarm() {
-    alarmService.deleteAlarm(widget.index ?? 0).then((res) {
+    alarmService.deleteAlarm(context, widget.index ?? 0).then((res) {
       if (mounted) Navigator.pop(context, true);
     });
   }
@@ -251,14 +289,11 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
             const SizedBox(height: 20),
 
             // Récurrence toutes les X semaines
-            Text(
-              context.translate('repeat_every'),
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(context.translate('x_weeks',
+                Text(context.translate(
+                    recurrenceWeeks == 1 ? 'repeat_every_week' : 'x_weeks',
                     translationParams: {"weeks": recurrenceWeeks.toString()})),
                 Expanded(
                   child: Slider(
@@ -276,7 +311,40 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
               ],
             ),
             const SizedBox(height: 20),
-
+            Text(
+              context.translate('select_audio'),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            DropdownButton<String>(
+              value: assetAudio,
+              isExpanded: true,
+              onChanged: (String? newValue) {
+                setState(() {
+                  assetAudio = newValue!;
+                });
+              },
+              dropdownColor: Colors.white,
+              focusColor: Colors.white,
+              items: audioOptions.map<DropdownMenuItem<String>>((String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(
+                    value
+                        .split('/')
+                        .last // Récupère le nom du fichier
+                        .replaceAll('.mp3', '') // Supprime l'extension .mp3
+                        .replaceAll('_', ' ')
+                        .replaceFirstMapped(
+                            RegExp(r'^[a-zA-Z]'),
+                            (match) => match
+                                .group(0)!
+                                .toUpperCase()), // Met une majuscule à la première lettre
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 20),
             // Autres options
             SwitchListTile(
               value: loopAudio,
