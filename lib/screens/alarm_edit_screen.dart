@@ -23,13 +23,14 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
   late DateTime selectedDateTime;
   late bool loopAudio;
   late bool vibrate;
-  late double? volume;
+  late double volume;
   late double fadeDuration;
   late String assetAudio;
 
   // Nouveaux paramètres
   late List<bool> selectedDays;
   late int recurrenceWeeks;
+  bool showMore = false; // Flag to toggle "Voir plus" form visibility
 
   final audioOptions = [
     'assets/musics/marimba.mp3',
@@ -50,7 +51,7 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
       selectedDateTime = selectedDateTime.copyWith(second: 0, millisecond: 0);
       loopAudio = true;
       vibrate = true;
-      volume = 0.5;
+      volume = 50;
       fadeDuration = 0;
       assetAudio = 'assets/musics/marimba.mp3';
       selectedDays =
@@ -60,7 +61,7 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
       selectedDateTime = widget.alarm!.time;
       loopAudio = widget.alarm!.loopAudio;
       vibrate = widget.alarm!.vibrate;
-      volume = widget.alarm!.volume;
+      volume = widget.alarm!.volume != null ? widget.alarm!.volume! * 100 : 50;
       assetAudio = widget.alarm!.assetAudio;
       selectedDays =
           widget.alarm!.selectedDays; // Charger les jours ici si disponible
@@ -93,7 +94,7 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
                   title: '',
                   time: selectedDateTime,
                   vibrate: vibrate,
-                  volume: volume,
+                  volume: volume / 100,
                   assetAudio: assetAudio,
                   selectedDays: selectedDays,
                   recurrenceWeeks: recurrenceWeeks))
@@ -112,7 +113,7 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
                   title: '',
                   time: selectedDateTime,
                   vibrate: vibrate,
-                  volume: volume,
+                  volume: volume / 100,
                   assetAudio: assetAudio,
                   selectedDays: selectedDays,
                   recurrenceWeeks: recurrenceWeeks),
@@ -246,168 +247,253 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(creating
-            ? context.translate('create_alarm')
-            : context.translate('edit_alarm')),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(
-              context.translate('cancel'),
-              style: const TextStyle(color: Colors.white, fontSize: 16),
-            ),
-          ),
-        ],
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: ListView(
-          children: [
-            // Heure sélectionnée
-            buildTimeSelector(),
-            const SizedBox(height: 20),
-
-            Wrap(
-              spacing: 4,
-              children: List.generate(7, (index) {
-                final day = context.translate('day_${index + 1}');
-                return ChoiceChip(
-                  label: Text(day),
-                  selected: selectedDays[index],
-                  onSelected: (selected) {
-                    setState(() {
-                      selectedDays[index] = selected;
-                    });
-                  },
-                  showCheckmark: false,
-                  selectedColor: Colors.blue.shade200,
-                  backgroundColor: Colors.white,
-                );
-              }),
-            ),
-            const SizedBox(height: 20),
-
-            // Récurrence toutes les X semaines
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(context.translate(
-                    recurrenceWeeks == 1 ? 'repeat_every_week' : 'x_weeks',
-                    translationParams: {"weeks": recurrenceWeeks.toString()})),
-                Expanded(
-                  child: Slider(
-                    min: 1,
-                    max: 10,
-                    divisions: 9,
-                    value: recurrenceWeeks.toDouble(),
-                    onChanged: (value) {
-                      setState(() {
-                        recurrenceWeeks = value.toInt();
-                      });
-                    },
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            Text(
-              context.translate('select_audio'),
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            DropdownButton<String>(
-              value: assetAudio,
-              isExpanded: true,
-              onChanged: (String? newValue) {
-                setState(() {
-                  assetAudio = newValue!;
-                });
-              },
-              dropdownColor: Colors.white,
-              focusColor: Colors.white,
-              items: audioOptions.map<DropdownMenuItem<String>>((String value) {
-                return DropdownMenuItem<String>(
-                  value: value,
-                  child: Text(
-                    value
-                        .split('/')
-                        .last // Récupère le nom du fichier
-                        .replaceAll('.mp3', '') // Supprime l'extension .mp3
-                        .replaceAll('_', ' ')
-                        .replaceFirstMapped(
-                            RegExp(r'^[a-zA-Z]'),
-                            (match) => match
-                                .group(0)!
-                                .toUpperCase()), // Met une majuscule à la première lettre
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 20),
-            // Autres options
-            SwitchListTile(
-              value: loopAudio,
-              onChanged: (value) => setState(() => loopAudio = value),
-              title: Text(context.translate('loop_audio')),
-              activeColor: Colors.blue,
-            ),
-            SwitchListTile(
-              value: vibrate,
-              onChanged: (value) => setState(() => vibrate = value),
-              title: Text(context.translate('vibrate')),
-              activeColor: Colors.blue,
-            ),
-
-            // Sauvegarder ou supprimer
-            const Divider(),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                !creating
-                    ? TextButton(
-                        onPressed: deleteAlarm,
-                        child: Text(
-                          context.translate('delete_alarm'),
-                          style: const TextStyle(color: Colors.red),
-                        ),
-                      )
-                    : Container(),
-                OutlinedButton(
-                  onPressed: loading ? null : saveAlarm,
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(
-                        color: Colors.blue, width: 2), // Border styling
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8), // Rounded corners
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                        vertical: 12, horizontal: 24),
-                  ),
-                  child: loading
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor:
-                                AlwaysStoppedAnimation<Color>(Colors.blue),
-                          ),
-                        )
-                      : Text(
-                          context.translate('save'),
-                          style: const TextStyle(
-                            color: Colors.blue,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                ),
-              ],
+        appBar: AppBar(
+          actions: [
+            // Bouton Annuler avec icône
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                textStyle: TextStyle(fontSize: 16),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.close,
+                      size: 18, color: Colors.white), // Icône "Fermer"
+                  SizedBox(width: 8),
+                  Text(context.translate('cancel')),
+                ],
+              ),
             ),
           ],
         ),
-      ),
-    );
+        body: Stack(
+          children: [
+            Padding(
+              padding: EdgeInsets.fromLTRB(20, 20, 20, 90),
+              child: ListView(
+                children: [
+                  // Heure sélectionnée
+                  buildTimeSelector(),
+                  const SizedBox(height: 20),
+
+                  Wrap(
+                    spacing: 4,
+                    children: List.generate(7, (index) {
+                      final day = context.translate('day_${index + 1}');
+                      return ChoiceChip(
+                        label: Text(day),
+                        selected: selectedDays[index],
+                        onSelected: (selected) {
+                          setState(() {
+                            selectedDays[index] = selected;
+                          });
+                        },
+                        showCheckmark: false,
+                        selectedColor: Colors.blue.shade200,
+                        backgroundColor: Colors.white,
+                      );
+                    }),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Récurrence toutes les X semaines
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(context.translate(
+                          recurrenceWeeks == 1
+                              ? 'repeat_every_week'
+                              : 'x_weeks',
+                          translationParams: {
+                            "weeks": recurrenceWeeks.toString()
+                          })),
+                      Expanded(
+                        child: Slider(
+                          min: 1,
+                          max: 10,
+                          divisions: 9,
+                          value: recurrenceWeeks.toDouble(),
+                          onChanged: (value) {
+                            setState(() {
+                              recurrenceWeeks = value.toInt();
+                            });
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+
+                  // "Voir plus" button to toggle extra form fields
+                  if (!showMore)
+                    ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          showMore = !showMore;
+                        });
+                      },
+                      style: ElevatedButton.styleFrom(
+                        elevation: 0, // Suppression de l'élévation
+                        backgroundColor: Colors.transparent, // Fond transparent
+                        padding:
+                            EdgeInsets.symmetric(vertical: 12, horizontal: 24),
+                        shape: RoundedRectangleBorder(
+                          borderRadius:
+                              BorderRadius.circular(8), // Coins arrondis
+                        ),
+                      ),
+                      child: Align(
+                        alignment: Alignment.centerLeft, // Alignement à gauche
+                        child: Text(
+                          context.translate('show_more'),
+                          style: TextStyle(
+                            fontWeight: FontWeight.w100, // Poids du texte
+                            fontSize: 16, // Taille du texte
+                          ),
+                        ),
+                      ),
+                    ),
+                  if (!showMore) const SizedBox(height: 30),
+                  // Show more options if showMore is true
+                  if (showMore) ...[
+                    Text(
+                      context.translate('select_audio'),
+                      style: const TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    DropdownButton<String>(
+                      value: assetAudio,
+                      isExpanded: true,
+                      onChanged: (String? newValue) {
+                        setState(() {
+                          assetAudio = newValue!;
+                        });
+                      },
+                      dropdownColor: Colors.white,
+                      focusColor: Colors.white,
+                      items: audioOptions
+                          .map<DropdownMenuItem<String>>((String value) {
+                        return DropdownMenuItem<String>(
+                          value: value,
+                          child: Text(
+                            value
+                                .split('/')
+                                .last // Récupère le nom du fichier
+                                .replaceAll(
+                                    '.mp3', '') // Supprime l'extension .mp3
+                                .replaceAll('_', ' ')
+                                .replaceFirstMapped(
+                                    RegExp(r'^[a-zA-Z]'),
+                                    (match) => match
+                                        .group(0)!
+                                        .toUpperCase()), // Met une majuscule à la première lettre
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                    // Volume Slider
+                    const SizedBox(height: 20),
+                    Text(
+                      "${context.translate('volume')} ( ${volume.toInt()} )",
+                      style: const TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    Slider(
+                      value: volume,
+                      min: 0,
+                      max: 100,
+                      divisions: 100,
+                      onChanged: (value) {
+                        setState(() {
+                          volume = value;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 20),
+                    SwitchListTile(
+                      value: loopAudio,
+                      onChanged: (value) => setState(() => loopAudio = value),
+                      title: Text(context.translate('loop_audio')),
+                      activeColor: Colors.blue,
+                    ),
+                    SwitchListTile(
+                      value: vibrate,
+                      onChanged: (value) => setState(() => vibrate = value),
+                      title: Text(context.translate('vibrate')),
+                      activeColor: Colors.blue,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            if (!creating)
+              Positioned(
+                left: 16,
+                bottom: 16,
+                child: TextButton(
+                  onPressed: deleteAlarm,
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.red,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    textStyle: TextStyle(fontSize: 16),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.delete,
+                          size: 18, color: Colors.red), // Icône "Supprimer"
+                      SizedBox(width: 8),
+                      Text(context.translate('delete_alarm')),
+                    ],
+                  ),
+                ),
+              ),
+
+            // Bouton Sauvegarder en bas à droite
+            Positioned(
+              right: 16,
+              bottom: 16,
+              child: OutlinedButton(
+                onPressed: loading ? null : saveAlarm,
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: Colors.blue, width: 2),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
+                ),
+                child: loading
+                    ? SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(Colors.blue),
+                        ),
+                      )
+                    : Row(
+                        children: [
+                          Icon(Icons.save,
+                              size: 18,
+                              color: Colors.blue), // Icône "Enregistrer"
+                          SizedBox(width: 8),
+                          Text(
+                            context.translate('save'),
+                            style: const TextStyle(
+                              color: Colors.blue,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+              ),
+            ),
+          ],
+        ));
   }
 }
