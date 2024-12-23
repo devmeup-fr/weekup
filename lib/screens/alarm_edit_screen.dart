@@ -1,7 +1,9 @@
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:my_alarms/core/utils/localization_util.dart';
 import 'package:my_alarms/models/alarm_model.dart';
 import 'package:my_alarms/services/alarm_service.dart';
+import 'package:volume_controller/volume_controller.dart';
 
 class AlarmEditScreen extends StatefulWidget {
   const AlarmEditScreen({super.key, this.alarm, this.index});
@@ -17,7 +19,10 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
   late FixedExtentScrollController _scrollMinController;
   late FixedExtentScrollController _scrollHourController;
   late AlarmService alarmService;
+  final AudioPlayer audioPlayer = AudioPlayer();
   bool loading = false;
+  bool playing = false;
+  double? originalVolume;
 
   late bool creating;
   late DateTime selectedDateTime;
@@ -27,37 +32,37 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
   late double fadeDuration;
   late String assetAudio;
 
-  // Nouveaux paramètres
   late List<bool> selectedDays;
   late int recurrenceWeeks;
-  bool showMore = false; // Flag to toggle "Voir plus" form visibility
-
+  bool showMore = false;
   final audioOptions = [
-    'assets/musics/Ciucciarella.mp3',
-    'assets/musics/marimba.mp3',
-    'assets/musics/mozart.mp3',
-    'assets/musics/nokia.mp3',
-    'assets/musics/aurora-ambient.mp3',
-    'assets/musics/daybreak.mp3',
-    'assets/musics/der-tag.mp3',
-    'assets/musics/early-morning-rise.mp3',
-    'assets/musics/emotional-piano.mp3',
-    'assets/musics/good-morning.mp3',
-    'assets/musics/jingle-bells.mp3',
-    'assets/musics/kirby.mp3',
-    'assets/musics/morning.mp3',
-    'assets/musics/soft-corporate.mp3',
-    'assets/musics/tropical.mp3',
-    'assets/musics/Ciucciarella.mp3',
-    'assets/musics/dofus_nowel.mp3',
-    'assets/musics/one_piece.mp3',
-    'assets/musics/star_wars.mp3',
+    'ciucciarella.mp3',
+    'marimba.mp3',
+    'mozart.mp3',
+    'nokia.mp3',
+    'aurora-ambient.mp3',
+    'daybreak.mp3',
+    'der-tag.mp3',
+    'early-morning-rise.mp3',
+    'emotional-piano.mp3',
+    'good-morning.mp3',
+    'jingle-bells.mp3',
+    'kirby.mp3',
+    'morning.mp3',
+    'soft-corporate.mp3',
+    'tropical.mp3',
+    'dofus_nowel.mp3',
+    'one_piece.mp3',
+    'star_wars.mp3',
   ];
 
   @override
   void initState() {
     super.initState();
     alarmService = AlarmService();
+    VolumeController()
+        .getVolume()
+        .then((vol) => originalVolume = vol.toDouble());
 
     creating = widget.alarm == null;
     if (creating) {
@@ -67,20 +72,17 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
       vibrate = true;
       volume = 50;
       fadeDuration = 0;
-      assetAudio = 'assets/musics/marimba.mp3';
-      selectedDays =
-          List.filled(7, false); // Par défaut, aucun jour sélectionné
-      recurrenceWeeks = 1; // Par défaut, répétition chaque semaine
+      assetAudio = 'marimba.mp3';
+      selectedDays = List.filled(7, false);
+      recurrenceWeeks = 1;
     } else {
       selectedDateTime = widget.alarm!.time;
       loopAudio = widget.alarm!.loopAudio;
       vibrate = widget.alarm!.vibrate;
       volume = widget.alarm!.volume != null ? widget.alarm!.volume! * 100 : 50;
       assetAudio = widget.alarm!.assetAudio;
-      selectedDays =
-          widget.alarm!.selectedDays; // Charger les jours ici si disponible
-      recurrenceWeeks = widget
-          .alarm!.recurrenceWeeks; // Charger les semaines ici si disponible
+      selectedDays = widget.alarm!.selectedDays;
+      recurrenceWeeks = widget.alarm!.recurrenceWeeks;
     }
     _scrollHourController =
         FixedExtentScrollController(initialItem: selectedDateTime.hour);
@@ -90,9 +92,40 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
 
   @override
   void dispose() {
+    // Restore the original volume
+    if (originalVolume != null) {
+      VolumeController().setVolume(originalVolume!);
+    }
     _scrollHourController.dispose();
     _scrollMinController.dispose();
+    audioPlayer.dispose(); // Dispose of audio player
     super.dispose();
+  }
+
+  Future<void> playAudio() async {
+    if (playing) {
+      await audioPlayer.stop();
+      setState(() => playing = false);
+
+      if (originalVolume != null) {
+        VolumeController().setVolume(originalVolume!);
+      }
+    } else {
+      VolumeController().setVolume((volume / 100));
+
+      await audioPlayer.setVolume(volume / 100); // Set internal player volume
+      await audioPlayer.play(AssetSource('musics/$assetAudio'));
+      setState(() => playing = true);
+
+      // Stop playing after the audio ends
+      audioPlayer.onPlayerComplete.listen((event) {
+        setState(() => playing = false);
+
+        if (originalVolume != null) {
+          VolumeController().setVolume(originalVolume!);
+        }
+      });
+    }
   }
 
   Future<void> saveAlarm() async {
@@ -377,37 +410,53 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
                       style: const TextStyle(
                           fontSize: 18, fontWeight: FontWeight.bold),
                     ),
-                    DropdownButton<String>(
-                      value: assetAudio,
-                      isExpanded: true,
-                      onChanged: (String? newValue) {
-                        setState(() {
-                          assetAudio = newValue!;
-                        });
-                      },
-                      dropdownColor: Colors.white,
-                      focusColor: Colors.white,
-                      items: audioOptions
-                          .map<DropdownMenuItem<String>>((String value) {
-                        return DropdownMenuItem<String>(
-                          value: value,
-                          child: Text(
-                            value
-                                .split('/')
-                                .last // Récupère le nom du fichier
-                                .replaceAll(
-                                    '.mp3', '') // Supprime l'extension .mp3
-                                .replaceAll('_', ' ')
-                                .replaceFirstMapped(
-                                    RegExp(r'^[a-zA-Z]'),
-                                    (match) => match
-                                        .group(0)!
-                                        .toUpperCase()), // Met une majuscule à la première lettre
-                            style: const TextStyle(fontSize: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Expanded(
+                          child: DropdownButton<String>(
+                            value: assetAudio,
+                            isExpanded: true,
+                            onChanged: (String? newValue) {
+                              setState(() {
+                                playing = false;
+                                assetAudio = newValue!;
+                              });
+                            },
+                            dropdownColor: Colors.white,
+                            focusColor: Colors.white,
+                            items: audioOptions
+                                .map<DropdownMenuItem<String>>((String value) {
+                              return DropdownMenuItem<String>(
+                                  value: value,
+                                  child: Text(
+                                    value
+                                        .split('/')
+                                        .last // Récupère le nom du fichier
+                                        .replaceAll('.mp3',
+                                            '') // Supprime l'extension .mp3
+                                        .replaceAll('_', ' ')
+                                        .replaceFirstMapped(
+                                            RegExp(r'^[a-zA-Z]'),
+                                            (match) =>
+                                                match.group(0)!.toUpperCase()),
+                                    style: const TextStyle(fontSize: 16),
+                                  ));
+                            }).toList(),
                           ),
-                        );
-                      }).toList(),
+                        ),
+                        const SizedBox(width: 20),
+                        IconButton(
+                          onPressed: playAudio,
+                          icon: Icon(
+                            playing ? Icons.pause : Icons.play_arrow,
+                            color: playing ? Colors.blue : Colors.grey,
+                            size: 30,
+                          ),
+                        ),
+                      ],
                     ),
+
                     // Volume Slider
                     const SizedBox(height: 20),
                     Text(
@@ -420,10 +469,12 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
                       min: 0,
                       max: 100,
                       divisions: 100,
-                      onChanged: (value) {
+                      onChanged: (value) async {
                         setState(() {
                           volume = value;
                         });
+                        VolumeController().setVolume(value / 100);
+                        audioPlayer.setVolume(value / 100);
                       },
                     ),
                     const SizedBox(height: 20),
