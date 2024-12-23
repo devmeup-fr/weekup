@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:alarm/alarm.dart';
 import 'package:alarm/service/alarm_storage.dart';
@@ -107,11 +109,13 @@ class AlarmService {
       loopAudio: nextAlarm.loopAudio,
       vibrate: nextAlarm.vibrate,
       volume: nextAlarm.volume,
+      fadeDuration: 3.0,
+      androidFullScreenIntent: true,
+      warningNotificationOnKill: Platform.isIOS,
       assetAudioPath: nextAlarm.assetAudio,
       notificationSettings: NotificationSettings(
         title: context.translate('alarm_notification_title'),
-        body: context.translate('alarm_notification_body',
-            translationParams: {"id": (nextAlarm.id ?? 1).toString()}),
+        body: context.translate('alarm_notification_body'),
         stopButton: context.translate('stop_alarm_button'),
         icon: 'notification_icon',
       ),

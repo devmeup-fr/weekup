@@ -48,8 +48,6 @@ class _HomeScreenState extends State<HomeScreen> {
     await Navigator.push(
       context,
       MaterialPageRoute<void>(builder: (context) {
-        AlarmService().setNextAlarm(context);
-
         return AlarmRingScreen(alarmSettings: alarmSettings);
       }),
     );
