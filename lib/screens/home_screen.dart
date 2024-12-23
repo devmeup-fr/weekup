@@ -112,11 +112,11 @@ class _HomeScreenState extends State<HomeScreen> {
                                 .deleteAlarm(context, index)
                                 .then((_) => loadAlarms());
                           },
-                          onToggleActive: (value) {
+                          onToggleActive: (value) async {
                             setState(() {
                               alarms[index].isActive = value;
                             });
-                            alarmService
+                            await alarmService
                                 .editAlarm(context, alarms[index], index)
                                 .then((_) => loadAlarms());
                           }),

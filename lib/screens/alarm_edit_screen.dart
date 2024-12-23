@@ -81,12 +81,12 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
     super.dispose();
   }
 
-  void saveAlarm() {
+  Future<void> saveAlarm() async {
     if (loading) return;
 
     if (creating) {
       setState(() => loading = true);
-      alarmService
+      await alarmService
           .saveAlarm(
               context,
               AlarmModel(
@@ -105,7 +105,7 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
         setState(() => loading = false);
       });
     } else {
-      alarmService
+      await alarmService
           .editAlarm(
               context,
               AlarmModel(

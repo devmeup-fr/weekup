@@ -61,49 +61,49 @@ class AlarmModel {
     );
   }
 
-  /// Calculate the next occurrence of the alarm
+  /// Calculate the next occurrence of the alarm considering past missed alarms.
   DateTime? getNextOccurrence() {
     if (!isActive) {
       return null; // Alarm is inactive
     }
 
     final now = DateTime.now();
-    DateTime nextDate =
-        DateTime(now.year, now.month, now.day, time.hour, time.minute);
+    DateTime nextDate = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      time.hour,
+      time.minute,
+    );
 
-    // Considérer tous les jours comme actifs si selectedDays est entièrement faux
+    // Considérer tous les jours comme actifs si `selectedDays` est entièrement faux
     final allDaysSelected = selectedDays.every((day) => !day);
 
-    // Nombre total de jours écoulés depuis la création
+    // Calculer la différence totale en jours depuis la création
     final totalDaysSinceCreation = now.difference(createdAt).inDays;
 
-    // Vérifie si la semaine actuelle est incluse dans la récurrence
-    final currentWeekOffset = totalDaysSinceCreation ~/ 7;
-    if (currentWeekOffset % recurrenceWeeks != 0) {
-      // Passer à la prochaine occurrence valide dans la récurrence
-      final weeksToAdd =
-          recurrenceWeeks - (currentWeekOffset % recurrenceWeeks);
-      nextDate = nextDate.add(Duration(days: weeksToAdd * 7));
+    // Vérifie si des occurrences auraient dû être déclenchées dans le passé
+    if (totalDaysSinceCreation > 0) {
+      final weeksSinceCreation = totalDaysSinceCreation ~/ 7;
+      final missedOccurrences = weeksSinceCreation ~/ recurrenceWeeks;
+
+      // Ajuster `nextDate` si des occurrences ont été manquées
+      nextDate = createdAt
+          .add(Duration(days: missedOccurrences * recurrenceWeeks * 7));
     }
 
-    // Vérifier si aujourd'hui est un jour actif
-    if ((allDaysSelected || selectedDays[now.weekday - 1]) &&
-        now.isBefore(nextDate)) {
-      return nextDate;
-    }
+    // Avancer jusqu'à la prochaine occurrence valide
+    while (nextDate.isBefore(now) ||
+        !(allDaysSelected || selectedDays[nextDate.weekday - 1])) {
+      nextDate = nextDate.add(Duration(days: 1)); // Vérifier le jour suivant
 
-    // Vérifier les jours suivants dans la semaine
-    for (int i = 1; i <= 7; i++) {
-      final nextWeekDay = (now.weekday - 1 + i) % 7; // Semaine circulaire
-      if (allDaysSelected || selectedDays[nextWeekDay]) {
-        nextDate = nextDate.add(Duration(days: i));
-
-        // Vérifier à nouveau la condition de récurrence
-        final futureTotalDays =
-            nextDate.difference(createdAt).inDays; // Total de jours au futur
-        if ((futureTotalDays ~/ 7) % recurrenceWeeks == 0) {
-          break;
-        }
+      // Vérifier la condition de récurrence
+      final daysFromCreation = nextDate.difference(createdAt).inDays;
+      if ((daysFromCreation ~/ 7) % recurrenceWeeks != 0) {
+        // Sauter aux prochaines semaines valides
+        final weeksToAdd =
+            recurrenceWeeks - (daysFromCreation ~/ 7) % recurrenceWeeks;
+        nextDate = nextDate.add(Duration(days: weeksToAdd * 7));
       }
     }
 

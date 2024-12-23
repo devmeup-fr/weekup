@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:alarm/alarm.dart';
+import 'package:alarm/service/alarm_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:my_alarms/core/utils/localization_util.dart';
 import 'package:my_alarms/models/alarm_model.dart';
@@ -81,19 +82,23 @@ class AlarmService {
     for (var i = 0; i < alarmList.length; i++) {
       var currentAlarm = AlarmModel.fromMap(json.decode(alarmList[i]));
       DateTime? currentAlarmDate = currentAlarm.getNextOccurrence();
-      if (nextAlarm == null ||
-          nextAlarm.getNextOccurrence() == null ||
-          (currentAlarmDate != null &&
+      if (currentAlarmDate != null &&
+          (nextAlarm == null ||
+              nextAlarm.getNextOccurrence() == null ||
               currentAlarmDate.isBefore(nextAlarm.getNextOccurrence()!))) {
         nextAlarm = currentAlarm;
       }
+    }
+
+    final alarms =
+        await AlarmStorage.getSavedAlarms(); // Replace with actual method
+    for (var alarm in alarms) {
+      await AlarmStorage.unsaveAlarm(alarm.id); // Replace with actual method
     }
     if (nextAlarm == null) {
       // No alarms set, do nothing
       return;
     }
-
-    // await AlarmStorage.unsaveAll();
 
     // Convert AlarmMap to AlarmModel and set it as the next alarm
     AlarmSettings alarmSettings = AlarmSettings(
