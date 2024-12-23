@@ -35,6 +35,7 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
   late List<bool> selectedDays;
   late int recurrenceWeeks;
   bool showMore = false;
+
   final audioOptions = [
     'ciucciarella.mp3',
     'marimba.mp3',
@@ -91,15 +92,16 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
   }
 
   @override
-  void dispose() {
+  void dispose() async {
+    super.dispose();
     // Restore the original volume
-    if (originalVolume != null) {
+    double volume = await VolumeController().getVolume();
+    if (originalVolume != null && originalVolume != volume) {
       VolumeController().setVolume(originalVolume!);
     }
     _scrollHourController.dispose();
     _scrollMinController.dispose();
     audioPlayer.dispose(); // Dispose of audio player
-    super.dispose();
   }
 
   Future<void> playAudio() async {
@@ -174,8 +176,8 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
     }
   }
 
-  void deleteAlarm() {
-    alarmService.deleteAlarm(context, widget.index ?? 0).then((res) {
+  void deleteAlarm() async {
+    await alarmService.deleteAlarm(context, widget.index ?? 0).then((res) {
       if (mounted) Navigator.pop(context, true);
     });
   }

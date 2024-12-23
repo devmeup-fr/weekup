@@ -112,7 +112,7 @@ class AlarmService {
       fadeDuration: 3.0,
       androidFullScreenIntent: true,
       warningNotificationOnKill: Platform.isIOS,
-      assetAudioPath: nextAlarm.assetAudio,
+      assetAudioPath: "assets/musics/${nextAlarm.assetAudio}",
       notificationSettings: NotificationSettings(
         title: context.translate('alarm_notification_title'),
         body: context.translate('alarm_notification_body'),
