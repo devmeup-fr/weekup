@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
 class ThemeColors {
-  static const primary = Color.fromRGBO(16, 57, 92, 1); // #10395c
-  static const primaryLight = Color.fromRGBO(16, 57, 92, 0.1); // #10395c
-  static const secondary = Color.fromRGBO(243, 146, 9, 1); // #f39209
+  static const primary = Color.fromRGBO(52, 32, 58, 1); // #34203a
+  static const primaryLight = Color.fromRGBO(52, 32, 58, 0.3); // #34203a
+  static const secondary = Color.fromRGBO(254, 160, 113, 1); // #fea071
   static const tertiary = Color.fromRGBO(255, 255, 255, 1); // #ffffff
 
   static const warning = Color.fromRGBO(243, 146, 9, 1); // #f39209
@@ -28,16 +28,4 @@ class ThemeColors {
 
   static const backgroundColor = Color.fromRGBO(241, 241, 241, 1);
   static const tabBackgroundColor = Color.fromRGBO(253, 233, 205, 1);
-
-  static const colorsPlayerGame = [
-    Color.fromRGBO(95, 46, 46, 1),
-    Color.fromRGBO(104, 153, 255, 1),
-    Color.fromRGBO(218, 74, 74, 1),
-    Color.fromRGBO(230, 136, 10, 1),
-    Color.fromRGBO(255, 165, 0, 1),
-    Color.fromRGBO(153, 104, 255, 1),
-    Color.fromRGBO(255, 204, 153, 1),
-    Color.fromRGBO(153, 255, 204, 1),
-    Color.fromRGBO(255, 153, 153, 1),
-  ];
 }

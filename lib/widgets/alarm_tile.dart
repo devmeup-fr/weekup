@@ -4,6 +4,7 @@ import 'package:my_alarms/core/blocs/locale_cubit.dart';
 import 'package:my_alarms/core/utils/extension_util.dart';
 import 'package:my_alarms/core/utils/localization_util.dart';
 import 'package:my_alarms/models/alarm_model.dart';
+import 'package:my_alarms/theme/colors.dart';
 
 class AlarmTile extends StatelessWidget {
   const AlarmTile({
@@ -27,7 +28,7 @@ class AlarmTile extends StatelessWidget {
           ? DismissDirection.endToStart
           : DismissDirection.none,
       background: Container(
-        color: Colors.red,
+        color: ThemeColors.error,
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 30),
         child: const Icon(

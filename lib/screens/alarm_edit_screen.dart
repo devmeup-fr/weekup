@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:my_alarms/core/utils/localization_util.dart';
 import 'package:my_alarms/models/alarm_model.dart';
 import 'package:my_alarms/services/alarm_service.dart';
+import 'package:my_alarms/theme/colors.dart';
 import 'package:volume_controller/volume_controller.dart';
 
 class AlarmEditScreen extends StatefulWidget {
@@ -223,7 +224,9 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
                                 fontWeight: isSelected
                                     ? FontWeight.bold
                                     : FontWeight.normal,
-                                color: isSelected ? Colors.blue : Colors.grey,
+                                color: isSelected
+                                    ? ThemeColors.secondary
+                                    : Colors.grey,
                               ),
                             ),
                           );
@@ -242,7 +245,7 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
               style: TextStyle(
                 fontSize: 36,
                 fontWeight: FontWeight.bold,
-                color: Colors.blue,
+                color: ThemeColors.secondary,
               ),
             ),
 
@@ -272,12 +275,13 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
                               child: Text(
                             index.toString().padLeft(2, '0'),
                             style: TextStyle(
-                              fontSize: 36,
-                              fontWeight: isSelected
-                                  ? FontWeight.bold
-                                  : FontWeight.normal,
-                              color: isSelected ? Colors.blue : Colors.grey,
-                            ),
+                                fontSize: 36,
+                                fontWeight: isSelected
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
+                                color: isSelected
+                                    ? ThemeColors.secondary
+                                    : Colors.grey),
                           ));
                         },
                         childCount: 60, // 60 minutes
@@ -340,7 +344,7 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
                           });
                         },
                         showCheckmark: false,
-                        selectedColor: Colors.blue.shade200,
+                        selectedColor: ThemeColors.primary,
                         backgroundColor: Colors.white,
                       );
                     }),
@@ -452,7 +456,9 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
                           onPressed: playAudio,
                           icon: Icon(
                             playing ? Icons.pause : Icons.play_arrow,
-                            color: playing ? Colors.blue : Colors.grey,
+                            color: playing
+                                ? ThemeColors.secondary
+                                : ThemeColors.primary,
                             size: 30,
                           ),
                         ),
@@ -484,13 +490,13 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
                       value: loopAudio,
                       onChanged: (value) => setState(() => loopAudio = value),
                       title: Text(context.translate('loop_audio')),
-                      activeColor: Colors.blue,
+                      activeColor: ThemeColors.primary,
                     ),
                     SwitchListTile(
                       value: vibrate,
                       onChanged: (value) => setState(() => vibrate = value),
                       title: Text(context.translate('vibrate')),
-                      activeColor: Colors.blue,
+                      activeColor: ThemeColors.primary,
                     ),
                   ],
                 ],
@@ -503,14 +509,15 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
                 child: TextButton(
                   onPressed: deleteAlarm,
                   style: TextButton.styleFrom(
-                    foregroundColor: Colors.red,
+                    foregroundColor: ThemeColors.primaryLight,
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     textStyle: TextStyle(fontSize: 16),
                   ),
                   child: Row(
                     children: [
                       Icon(Icons.delete,
-                          size: 18, color: Colors.red), // Icône "Supprimer"
+                          size: 18,
+                          color: ThemeColors.primaryLight), // Icône "Supprimer"
                       SizedBox(width: 8),
                       Text(context.translate('delete_alarm')),
                     ],
@@ -525,7 +532,7 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
               child: OutlinedButton(
                 onPressed: loading ? null : saveAlarm,
                 style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: Colors.blue, width: 2),
+                  side: const BorderSide(color: ThemeColors.primary, width: 2),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
@@ -538,20 +545,21 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
                         width: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          valueColor:
-                              AlwaysStoppedAnimation<Color>(Colors.blue),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                              ThemeColors.primary),
                         ),
                       )
                     : Row(
                         children: [
                           Icon(Icons.save,
                               size: 18,
-                              color: Colors.blue), // Icône "Enregistrer"
+                              color:
+                                  ThemeColors.primary), // Icône "Enregistrer"
                           SizedBox(width: 8),
                           Text(
                             context.translate('save'),
                             style: const TextStyle(
-                              color: Colors.blue,
+                              color: ThemeColors.primary,
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
                             ),

@@ -4,6 +4,7 @@ import 'package:alarm/alarm.dart';
 import 'package:flutter/material.dart';
 import 'package:my_alarms/core/utils/localization_util.dart';
 import 'package:my_alarms/services/alarm_service.dart';
+import 'package:my_alarms/theme/colors.dart';
 
 class AlarmRingScreen extends StatefulWidget {
   const AlarmRingScreen({required this.alarmSettings, super.key});
@@ -53,11 +54,10 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
       decoration: const BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            Color.fromARGB(96, 199, 15, 231),
-            Colors.black,
-            Colors.black,
-            Colors.black,
-            Color.fromARGB(96, 199, 15, 231)
+            ThemeColors.primary,
+            ThemeColors.secondary,
+            ThemeColors.secondary,
+            ThemeColors.primary
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -109,7 +109,7 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
               _buildActionButton(
                 context,
                 title: context.translate('alarmSnooze'),
-                color: Color.fromARGB(96, 199, 15, 231),
+                color: ThemeColors.primaryLight,
                 onPressed: () {
                   final now = DateTime.now();
                   Alarm.stop(widget.alarmSettings.id);
@@ -129,7 +129,7 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
               _buildActionButton(
                 context,
                 title: context.translate('alarmStop'),
-                color: Colors.redAccent,
+                color: ThemeColors.primary,
                 onPressed: () async {
                   Alarm.stop(widget.alarmSettings.id);
                   await alarmService.setNextAlarm(context);
