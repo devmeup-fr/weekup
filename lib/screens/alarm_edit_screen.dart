@@ -33,9 +33,23 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
   bool showMore = false; // Flag to toggle "Voir plus" form visibility
 
   final audioOptions = [
+    'assets/musics/Ciucciarella.mp3',
     'assets/musics/marimba.mp3',
     'assets/musics/mozart.mp3',
     'assets/musics/nokia.mp3',
+    'assets/musics/aurora-ambient.mp3',
+    'assets/musics/daybreak.mp3',
+    'assets/musics/der-tag.mp3',
+    'assets/musics/early-morning-rise.mp3',
+    'assets/musics/emotional-piano.mp3',
+    'assets/musics/good-morning.mp3',
+    'assets/musics/jingle-bells.mp3',
+    'assets/musics/kirby.mp3',
+    'assets/musics/morning.mp3',
+    'assets/musics/soft-corporate.mp3',
+    'assets/musics/tropical.mp3',
+    'assets/musics/Ciucciarella.mp3',
+    'assets/musics/dofus_nowel.mp3',
     'assets/musics/one_piece.mp3',
     'assets/musics/star_wars.mp3',
   ];
@@ -312,8 +326,8 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
                       Expanded(
                         child: Slider(
                           min: 1,
-                          max: 10,
-                          divisions: 9,
+                          max: 4,
+                          divisions: 3,
                           value: recurrenceWeeks.toDouble(),
                           onChanged: (value) {
                             setState(() {

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:alarm/alarm.dart';
 import 'package:flutter/material.dart';
 import 'package:my_alarms/core/utils/localization_util.dart';
+import 'package:my_alarms/services/alarm_service.dart';
 
 class AlarmRingScreen extends StatefulWidget {
   const AlarmRingScreen({required this.alarmSettings, super.key});
@@ -14,9 +15,12 @@ class AlarmRingScreen extends StatefulWidget {
 }
 
 class _AlarmRingScreenState extends State<AlarmRingScreen> {
+  late AlarmService alarmService;
+
   @override
   void initState() {
     super.initState();
+    alarmService = AlarmService();
     Timer.periodic(const Duration(seconds: 1), (timer) async {
       if (!mounted) {
         timer.cancel();
@@ -31,7 +35,10 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
 
       alarmPrint('Alarm ${widget.alarmSettings.id} stopped ringing.');
       timer.cancel();
-      if (mounted) Navigator.pop(context);
+      if (mounted) {
+        Navigator.pop(context);
+        await alarmService.setNextAlarm(context);
+      }
     });
   }
 
@@ -123,8 +130,9 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
                 context,
                 title: context.translate('alarmStop'),
                 color: Colors.redAccent,
-                onPressed: () {
+                onPressed: () async {
                   Alarm.stop(widget.alarmSettings.id);
+                  await alarmService.setNextAlarm(context);
                 },
               ),
             ],
