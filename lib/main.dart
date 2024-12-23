@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -17,9 +18,11 @@ const bool MODE_MOCK = false;
 const bool WITH_CLEAN_PREF = false;
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
   await Alarm.init();
+  FlutterNativeSplash.remove();
 
   // CLEAN PREF USE
   if (WITH_CLEAN_PREF) {
