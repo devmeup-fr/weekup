@@ -73,6 +73,12 @@ class AlarmService {
     final prefs = await SharedPreferences.getInstance();
     final alarmList = prefs.getStringList(alarmKey) ?? [];
 
+    final alarms = await AlarmStorage.getSavedAlarms();
+    for (var alarm in alarms) {
+      await Alarm.stop(alarm.id);
+      await AlarmStorage.unsaveAlarm(alarm.id);
+    }
+
     if (alarmList.isEmpty) {
       // No alarms set, do nothing
       return;
@@ -103,11 +109,6 @@ class AlarmService {
       }
     }
 
-    final alarms =
-        await AlarmStorage.getSavedAlarms(); // Replace with actual method
-    for (var alarm in alarms) {
-      await AlarmStorage.unsaveAlarm(alarm.id); // Replace with actual method
-    }
     if (nextAlarm == null) {
       // No alarms set, do nothing
       return;
