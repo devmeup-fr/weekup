@@ -18,12 +18,16 @@ class AlarmRingScreen extends StatefulWidget {
 }
 
 class _AlarmRingScreenState extends State<AlarmRingScreen> {
+  late final AppLifecycleListener _listener;
   late AlarmService alarmService;
 
   @override
   void initState() {
     super.initState();
     alarmService = AlarmService();
+    _listener = AppLifecycleListener(
+      onInactive: () => snoozeAlarm(),
+    );
     Timer.periodic(const Duration(seconds: 1), (timer) async {
       if (!mounted) {
         timer.cancel();
@@ -32,11 +36,9 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
 
       final isRinging = await Alarm.isRinging(widget.alarmSettings.id);
       if (isRinging) {
-        alarmPrint('Alarm ${widget.alarmSettings.id} is still ringing...');
         return;
       }
 
-      alarmPrint('Alarm ${widget.alarmSettings.id} stopped ringing.');
       timer.cancel();
       if (mounted) {
         Navigator.pop(context);
@@ -44,6 +46,30 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
         await widget.loadAlarms();
       }
     });
+  }
+
+  @override
+  void dispose() {
+    _listener.dispose();
+    super.dispose();
+  }
+
+  void snoozeAlarm() {
+    final now = DateTime.now();
+
+    Alarm.stop(widget.alarmSettings.id);
+
+    Alarm.set(
+      alarmSettings: widget.alarmSettings.copyWith(
+        dateTime: now.add(const Duration(minutes: 5)),
+      ),
+    );
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(context.translate('snoozeAlarm')),
+      ),
+    );
   }
 
   @override
@@ -109,26 +135,10 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _buildActionButton(
-                context,
-                title: context.translate('alarmSnooze'),
-                color: ThemeColors.primaryLight,
-                onPressed: () {
-                  final now = DateTime.now();
-                  Alarm.stop(widget.alarmSettings.id);
-                  Alarm.set(
-                    alarmSettings: widget.alarmSettings.copyWith(
-                      dateTime: DateTime(
-                        now.year,
-                        now.month,
-                        now.day,
-                        now.hour,
-                        now.minute,
-                      ).add(const Duration(minutes: 5)),
-                    ),
-                  );
-                },
-              ),
+              _buildActionButton(context,
+                  title: context.translate('alarmSnooze'),
+                  color: ThemeColors.primaryLight,
+                  onPressed: snoozeAlarm),
               _buildActionButton(
                 context,
                 title: context.translate('alarmStop'),

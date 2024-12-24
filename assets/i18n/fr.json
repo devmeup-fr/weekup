@@ -42,5 +42,6 @@
     "day_7": "D",
     "create_alarm": "Création de l'alarme",
     "edit_alarm": "Édition de l'alarme",
-    "delete_alarm": "Supprimer l'alarme"
+    "delete_alarm": "Supprimer l'alarme",
+    "snooze_alarm": "Votre alarme sonnera à nouveau dans 5 minutes."
 }
