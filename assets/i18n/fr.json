@@ -1,6 +1,7 @@
 {
     "common": {
-        "appTitle": "Mes Alarmes"
+        "appTitle": "Mes Alarmes",
+        "date": "Date"
     },
     "requesting_notification_permission": "Demande d'autorisation de notification...",
     "notification_permission_granted": "Autorisation de notification accordée.",
@@ -13,6 +14,7 @@
     "schedule_exact_alarm_permission_granted": "Autorisation pour les alarmes exactes accordée.",
     "schedule_exact_alarm_permission_denied": "Autorisation pour les alarmes exactes refusée.",
     "noAlarmSet": "Aucune alarme enregistrée.",
+    "noAlarmEnabled": "Aucune alarme n'est définie.",
     "alarmStop": "Arrêter",
     "alarmSnooze": "Reporter",
     "alarmDescription": "Il est l'heure de se réveiller !",
@@ -42,5 +44,6 @@
     "create_alarm": "Création de l'alarme",
     "edit_alarm": "Édition de l'alarme",
     "delete_alarm": "Supprimer l'alarme",
-    "snooze_alarm": "Votre alarme sonnera à nouveau dans 5 minutes."
+    "snooze_alarm": "Votre alarme sonnera à nouveau dans 5 minutes.",
+    "nextDateTitle": "Prochaine alarme dans"
 }

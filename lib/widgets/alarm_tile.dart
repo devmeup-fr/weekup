@@ -102,57 +102,74 @@ class AlarmTile extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: List.generate(7, (index) {
-                    final isSelected = alarm.selectedDays.length > index
-                        ? alarm.selectedDays[index]
-                        : false;
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      child: Text(
-                        context.translate('day_${index + 1}'),
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: isSelected
-                              ? Colors.white
-                              : Colors.white.withOpacity(0.3),
-                        ),
-                      ),
-                    );
-                  }),
-                ),
-                const SizedBox(height: 8),
                 BlocBuilder<LocaleCubit, Locale>(
                   builder: (context, state) => Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        alarm
-                                .getNextOccurrence()
-                                ?.formatDateMin(state.languageCode) ??
-                            '',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        context.translate(
-                          alarm.recurrenceWeeks == 1
-                              ? 'repeat_every_week'
-                              : 'x_weeks',
-                          translationParams: {
-                            'weeks': alarm.recurrenceWeeks.toString(),
-                          },
-                        ),
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey,
-                        ),
-                      ),
+                      Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            (alarm.getNextOccurrence() != null)
+                                ? Text(
+                                    alarm.getNextOccurrence()?.formatDateMin(
+                                            state.languageCode) ??
+                                        '',
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey,
+                                    ),
+                                  )
+                                : Container(),
+                            if (!alarm.isAllDaysFalse())
+                              Padding(
+                                  padding: EdgeInsets.only(right: 8),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    children: List.generate(7, (index) {
+                                      final isSelected =
+                                          alarm.selectedDays.length > index
+                                              ? alarm.selectedDays[index]
+                                              : false;
+                                      return Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 4),
+                                        child: Text(
+                                          context.translate('day_${index + 1}'),
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.bold,
+                                            color: isSelected
+                                                ? Colors.white
+                                                : Colors.white.withOpacity(0.3),
+                                          ),
+                                        ),
+                                      );
+                                    }),
+                                  ))
+                          ]),
+                      if (!alarm.isAllDaysFalse()) const SizedBox(height: 4),
+                      if (!alarm.isAllDaysFalse())
+                        Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              Padding(
+                                padding: EdgeInsets.only(right: 12),
+                                child: Text(
+                                  context.translate(
+                                    alarm.recurrenceWeeks == 1
+                                        ? 'repeat_every_week'
+                                        : 'x_weeks',
+                                    translationParams: {
+                                      'weeks': alarm.recurrenceWeeks.toString(),
+                                    },
+                                  ),
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                              )
+                            ])
                     ],
                   ),
                 )

@@ -61,6 +61,10 @@ class AlarmModel {
     );
   }
 
+  bool isAllDaysFalse() {
+    return selectedDays.every((day) => !day);
+  }
+
   /// Calculate the next occurrence of the alarm considering past missed alarms.
   DateTime? getNextOccurrence() {
     if (!isActive) {
@@ -77,7 +81,7 @@ class AlarmModel {
     );
 
     // Considérer tous les jours comme actifs si `selectedDays` est entièrement faux
-    final allDaysSelected = selectedDays.every((day) => !day);
+    final allDaysSelected = isAllDaysFalse();
 
     // Calculer la différence totale en jours depuis la création
     final totalDaysSinceCreation = now.difference(createdAt).inDays;

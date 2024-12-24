@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:my_alarms/core/utils/localization_util.dart';
 import 'package:my_alarms/models/alarm_model.dart';
 import 'package:my_alarms/services/alarm_service.dart';
+import 'package:my_alarms/widgets/next_alarm_set.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../services/alarm_permissions_service.dart';
@@ -49,7 +50,8 @@ class _HomeScreenState extends State<HomeScreen> {
     await Navigator.push(
       context,
       MaterialPageRoute<void>(builder: (context) {
-        return AlarmRingScreen(alarmSettings: alarmSettings, loadAlarms: loadAlarms);
+        return AlarmRingScreen(
+            alarmSettings: alarmSettings, loadAlarms: loadAlarms);
       }),
     );
 
@@ -86,9 +88,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // Function to open the URL
   void _launchURL() async {
-    const url = 'https://devmeup.fr';
-    if (await canLaunch(url)) {
-      await launch(url);
+    const url = 'devmeup.fr';
+    if (await canLaunchUrl(Uri.https(url))) {
+      await launchUrl(Uri.https(url));
     } else {
       throw 'Could not launch $url';
     }
@@ -99,68 +101,69 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       backgroundColor: Colors.black87,
       body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: alarms.isNotEmpty
-                  ? ListView.builder(
-                      itemCount: alarms.length,
-                      itemBuilder: (context, index) {
-                        return Card(
-                          color: Colors.white.withOpacity(0.13),
-                          margin: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 8),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12)),
-                          elevation: 4,
-                          child: AlarmTile(
-                              key: Key(alarms[index].id.toString()),
-                              alarm: alarms[index],
-                              onPressed: () => navigateToAlarmScreen(
-                                  alarms[index],
-                                  index: index),
-                              onDismissed: () async {
-                                await alarmService
-                                    .deleteAlarm(context, index)
-                                    .then((_) => loadAlarms());
-                              },
-                              onToggleActive: (value) async {
-                                setState(() {
-                                  alarms[index].isActive = value;
-                                });
-                                await alarmService
-                                    .editAlarm(context, alarms[index], index)
-                                    .then((_) => loadAlarms());
-                              }),
-                        );
-                      },
-                    )
-                  : Center(
+        child: alarms.isNotEmpty
+            ? Column(
+                children: [
+                  NextAlarmSet(),
+                  Expanded(
+                      child: ListView.builder(
+                    itemCount: alarms.length,
+                    itemBuilder: (context, index) {
+                      return Card(
+                        color: Colors.white.withOpacity(0.13),
+                        margin: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                        elevation: 4,
+                        child: AlarmTile(
+                            key: Key(alarms[index].id.toString()),
+                            alarm: alarms[index],
+                            onPressed: () => navigateToAlarmScreen(
+                                alarms[index],
+                                index: index),
+                            onDismissed: () async {
+                              await alarmService
+                                  .deleteAlarm(context, index)
+                                  .then((_) => loadAlarms());
+                            },
+                            onToggleActive: (value) async {
+                              setState(() {
+                                alarms[index].isActive = value;
+                                alarms[index].createdAt = DateTime.now();
+                              });
+                              await alarmService
+                                  .editAlarm(context, alarms[index], index)
+                                  .then((_) => loadAlarms());
+                            }),
+                      );
+                    },
+                  )),
+                  GestureDetector(
+                    onTap: _launchURL, // Open the URL when tapped
+                    child: Padding(
+                      padding: const EdgeInsets.all(10),
                       child: Text(
-                        context.translate('noAlarmSet'),
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleMedium
-                            ?.copyWith(color: Colors.grey),
+                        'DevMeUp',
+                        style: TextStyle(
+                          color: Colors.grey,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
-            ),
-            GestureDetector(
-              onTap: _launchURL, // Open the URL when tapped
-              child: Padding(
-                padding: const EdgeInsets.all(10),
-                child: Text(
-                  'DevMeUp',
-                  style: TextStyle(
-                    color: Colors.grey,
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
                   ),
+                ],
+              )
+            : Center(
+                child: Text(
+                  context.translate('noAlarmSet'),
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleLarge
+                      ?.copyWith(color: Colors.grey),
                 ),
               ),
-            ),
-          ],
-        ),
       ),
       floatingActionButton: Padding(
         padding: const EdgeInsets.all(10),
