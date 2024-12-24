@@ -330,22 +330,25 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
                   // Heure sélectionnée
                   buildTimeSelector(),
                   const SizedBox(height: 20),
-
                   Wrap(
-                    spacing: 4,
+                    spacing: 4, // Ajuste l'espace horizontal
                     children: List.generate(7, (index) {
                       final day = context.translate('day_${index + 1}');
-                      return ChoiceChip(
-                        label: Text(day),
-                        selected: selectedDays[index],
-                        onSelected: (selected) {
-                          setState(() {
-                            selectedDays[index] = selected;
-                          });
-                        },
-                        showCheckmark: false,
-                        selectedColor: ThemeColors.primary,
-                        backgroundColor: Colors.white,
+                      return SizedBox(
+                        width: MediaQuery.of(context).size.width / 7 -
+                            10, // Ajuste la largeur
+                        child: ChoiceChip(
+                          label: FittedBox(child: Text(day)),
+                          selected: selectedDays[index],
+                          onSelected: (selected) {
+                            setState(() {
+                              selectedDays[index] = selected;
+                            });
+                          },
+                          showCheckmark: false,
+                          selectedColor: ThemeColors.primary,
+                          backgroundColor: Colors.white,
+                        ),
                       );
                     }),
                   ),
