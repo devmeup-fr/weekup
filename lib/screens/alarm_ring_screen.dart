@@ -105,13 +105,28 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
           ),
           const SizedBox(height: 30),
           // Titre principal
-          Text(
-            '⏰ ${context.translate('alarmTitle')} ⏰',
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(children: [
+              Text(
+                '⏰',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontSize: 38,
+                      color: Colors.white70,
+                    ),
+              ),
+              Text(
+                widget.alarmSettings.notificationSettings.title,
+                textAlign: TextAlign.center,
+                softWrap: true,
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+              ),
+            ]),
           ),
           const SizedBox(height: 15),
           Text(

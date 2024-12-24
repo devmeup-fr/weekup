@@ -125,7 +125,7 @@ class AlarmService {
       warningNotificationOnKill: Platform.isIOS,
       assetAudioPath: "assets/musics/${nextAlarm.assetAudio}",
       notificationSettings: NotificationSettings(
-        title: context.translate('alarm_notification_title'),
+        title: nextAlarm.title ?? context.translate('alarm_notification_title'),
         body: context.translate('alarm_notification_body'),
         stopButton: context.translate('stop_alarm_button'),
         icon: 'notification_icon',
