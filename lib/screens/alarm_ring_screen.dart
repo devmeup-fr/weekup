@@ -67,7 +67,7 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(context.translate('snoozeAlarm')),
+        content: Text(context.translate('snooze_alarm')),
       ),
     );
   }
