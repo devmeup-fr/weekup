@@ -19,6 +19,7 @@ class AlarmEditScreen extends StatefulWidget {
 class _AlarmEditScreenState extends State<AlarmEditScreen> {
   late FixedExtentScrollController _scrollMinController;
   late FixedExtentScrollController _scrollHourController;
+  late TextEditingController _titleController;
   late AlarmService alarmService;
   final AudioPlayer audioPlayer = AudioPlayer();
   bool loading = false;
@@ -35,7 +36,6 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
 
   late List<bool> selectedDays;
   late int recurrenceWeeks;
-  bool showMore = false;
 
   final audioOptions = [
     'ciucciarella.mp3',
@@ -68,6 +68,7 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
 
     creating = widget.alarm == null;
     if (creating) {
+      _titleController = TextEditingController(text: '');
       selectedDateTime = DateTime.now().add(const Duration(minutes: 1));
       selectedDateTime = selectedDateTime.copyWith(second: 0, millisecond: 0);
       loopAudio = true;
@@ -78,6 +79,7 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
       selectedDays = List.filled(7, false);
       recurrenceWeeks = 1;
     } else {
+      _titleController = TextEditingController(text: widget.alarm!.title ?? '');
       selectedDateTime = widget.alarm!.time;
       loopAudio = widget.alarm!.loopAudio;
       vibrate = widget.alarm!.vibrate;
@@ -134,21 +136,19 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
   Future<void> saveAlarm() async {
     if (loading) return;
 
+    AlarmModel alarmModel = AlarmModel(
+        id: widget.index ?? 0,
+        title: _titleController.text != '' ? _titleController.text : null,
+        time: selectedDateTime,
+        vibrate: vibrate,
+        volume: volume / 100,
+        assetAudio: assetAudio,
+        selectedDays: selectedDays,
+        recurrenceWeeks: recurrenceWeeks);
+
     if (creating) {
       setState(() => loading = true);
-      await alarmService
-          .saveAlarm(
-              context,
-              AlarmModel(
-                  id: widget.index ?? 1,
-                  title: '',
-                  time: selectedDateTime,
-                  vibrate: vibrate,
-                  volume: volume / 100,
-                  assetAudio: assetAudio,
-                  selectedDays: selectedDays,
-                  recurrenceWeeks: recurrenceWeeks))
-          .then((res) {
+      await alarmService.saveAlarm(context, alarmModel).then((res) {
         if (mounted) {
           Navigator.pop(context, true);
         }
@@ -156,18 +156,7 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
       });
     } else {
       await alarmService
-          .editAlarm(
-              context,
-              AlarmModel(
-                  id: widget.index ?? 0,
-                  title: '',
-                  time: selectedDateTime,
-                  vibrate: vibrate,
-                  volume: volume / 100,
-                  assetAudio: assetAudio,
-                  selectedDays: selectedDays,
-                  recurrenceWeeks: recurrenceWeeks),
-              widget.index ?? 0)
+          .editAlarm(context, alarmModel, widget.index ?? 0)
           .then((res) {
         if (mounted) {
           Navigator.pop(context, true);
@@ -327,6 +316,17 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
               padding: EdgeInsets.fromLTRB(20, 20, 20, 90),
               child: ListView(
                 children: [
+                  const SizedBox(height: 10),
+                  TextField(
+                    decoration: InputDecoration(
+                      labelText: context.translate('alarm_title'),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    controller: _titleController,
+                  ),
+                  const SizedBox(height: 20),
                   // Heure sélectionnée
                   buildTimeSelector(),
                   const SizedBox(height: 20),
@@ -379,126 +379,93 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
                   ),
                   const SizedBox(height: 20),
 
-                  // "Voir plus" button to toggle extra form fields
-                  if (!showMore)
-                    ElevatedButton(
-                      onPressed: () {
-                        setState(() {
-                          showMore = !showMore;
-                        });
-                      },
-                      style: ElevatedButton.styleFrom(
-                        elevation: 0, // Suppression de l'élévation
-                        backgroundColor: Colors.transparent, // Fond transparent
-                        padding:
-                            EdgeInsets.symmetric(vertical: 12, horizontal: 24),
-                        shape: RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(8), // Coins arrondis
+                  Text(
+                    context.translate('select_audio'),
+                    style: const TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Expanded(
+                        child: DropdownButton<String>(
+                          value: assetAudio,
+                          isExpanded: true,
+                          onChanged: (String? newValue) {
+                            setState(() {
+                              playing = false;
+                              assetAudio = newValue!;
+                            });
+                          },
+                          dropdownColor: Colors.white,
+                          focusColor: Colors.white,
+                          items: audioOptions
+                              .map<DropdownMenuItem<String>>((String value) {
+                            return DropdownMenuItem<String>(
+                                value: value,
+                                child: Text(
+                                  value
+                                      .split('/')
+                                      .last // Récupère le nom du fichier
+                                      .replaceAll('.mp3',
+                                          '') // Supprime l'extension .mp3
+                                      .replaceAll('_', ' ')
+                                      .replaceFirstMapped(
+                                          RegExp(r'^[a-zA-Z]'),
+                                          (match) =>
+                                              match.group(0)!.toUpperCase()),
+                                  style: const TextStyle(fontSize: 16),
+                                ));
+                          }).toList(),
                         ),
                       ),
-                      child: Align(
-                        alignment: Alignment.centerLeft, // Alignement à gauche
-                        child: Text(
-                          context.translate('show_more'),
-                          style: TextStyle(
-                            fontWeight: FontWeight.w100, // Poids du texte
-                            fontSize: 16, // Taille du texte
-                          ),
+                      const SizedBox(width: 20),
+                      IconButton(
+                        onPressed: playAudio,
+                        icon: Icon(
+                          playing ? Icons.pause : Icons.play_arrow,
+                          color: playing
+                              ? ThemeColors.secondary
+                              : ThemeColors.primary,
+                          size: 30,
                         ),
                       ),
-                    ),
-                  if (!showMore) const SizedBox(height: 30),
-                  // Show more options if showMore is true
-                  if (showMore) ...[
-                    Text(
-                      context.translate('select_audio'),
-                      style: const TextStyle(
-                          fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        Expanded(
-                          child: DropdownButton<String>(
-                            value: assetAudio,
-                            isExpanded: true,
-                            onChanged: (String? newValue) {
-                              setState(() {
-                                playing = false;
-                                assetAudio = newValue!;
-                              });
-                            },
-                            dropdownColor: Colors.white,
-                            focusColor: Colors.white,
-                            items: audioOptions
-                                .map<DropdownMenuItem<String>>((String value) {
-                              return DropdownMenuItem<String>(
-                                  value: value,
-                                  child: Text(
-                                    value
-                                        .split('/')
-                                        .last // Récupère le nom du fichier
-                                        .replaceAll('.mp3',
-                                            '') // Supprime l'extension .mp3
-                                        .replaceAll('_', ' ')
-                                        .replaceFirstMapped(
-                                            RegExp(r'^[a-zA-Z]'),
-                                            (match) =>
-                                                match.group(0)!.toUpperCase()),
-                                    style: const TextStyle(fontSize: 16),
-                                  ));
-                            }).toList(),
-                          ),
-                        ),
-                        const SizedBox(width: 20),
-                        IconButton(
-                          onPressed: playAudio,
-                          icon: Icon(
-                            playing ? Icons.pause : Icons.play_arrow,
-                            color: playing
-                                ? ThemeColors.secondary
-                                : ThemeColors.primary,
-                            size: 30,
-                          ),
-                        ),
-                      ],
-                    ),
+                    ],
+                  ),
 
-                    // Volume Slider
-                    const SizedBox(height: 20),
-                    Text(
-                      "${context.translate('volume')} ( ${volume.toInt()} )",
-                      style: const TextStyle(
-                          fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                    Slider(
-                      value: volume,
-                      min: 0,
-                      max: 100,
-                      divisions: 100,
-                      onChanged: (value) async {
-                        setState(() {
-                          volume = value;
-                        });
-                        VolumeController().setVolume(value / 100);
-                        audioPlayer.setVolume(value / 100);
-                      },
-                    ),
-                    const SizedBox(height: 20),
-                    SwitchListTile(
-                      value: loopAudio,
-                      onChanged: (value) => setState(() => loopAudio = value),
-                      title: Text(context.translate('loop_audio')),
-                      activeColor: ThemeColors.primary,
-                    ),
-                    SwitchListTile(
-                      value: vibrate,
-                      onChanged: (value) => setState(() => vibrate = value),
-                      title: Text(context.translate('vibrate')),
-                      activeColor: ThemeColors.primary,
-                    ),
-                  ],
+                  // Volume Slider
+                  const SizedBox(height: 20),
+                  Text(
+                    "${context.translate('volume')} ( ${volume.toInt()} )",
+                    style: const TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  Slider(
+                    value: volume,
+                    min: 0,
+                    max: 100,
+                    divisions: 100,
+                    onChanged: (value) async {
+                      setState(() {
+                        volume = value;
+                      });
+                      VolumeController().setVolume(value / 100);
+                      audioPlayer.setVolume(value / 100);
+                    },
+                  ),
+                  const SizedBox(height: 20),
+                  SwitchListTile(
+                    value: loopAudio,
+                    onChanged: (value) => setState(() => loopAudio = value),
+                    title: Text(context.translate('loop_audio')),
+                    activeColor: ThemeColors.primary,
+                  ),
+                  SwitchListTile(
+                    value: vibrate,
+                    onChanged: (value) => setState(() => vibrate = value),
+                    title: Text(context.translate('vibrate')),
+                    activeColor: ThemeColors.primary,
+                  ),
                 ],
               ),
             ),

@@ -28,6 +28,7 @@
     "loop_audio": "Boucler l'audio",
     "vibrate": "Vibrer",
     "volume": "Volume",
+    "alarm_title": "Titre",
     "select_audio": "Sélectionner la musique",
     "alarm_notification_title": "Alarme",
     "alarm_notification_body": "Votre alarme sonne.",
