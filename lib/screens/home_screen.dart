@@ -49,7 +49,7 @@ class _HomeScreenState extends State<HomeScreen> {
     await Navigator.push(
       context,
       MaterialPageRoute<void>(builder: (context) {
-        return AlarmRingScreen(alarmSettings: alarmSettings);
+        return AlarmRingScreen(alarmSettings: alarmSettings, loadAlarms: loadAlarms);
       }),
     );
 

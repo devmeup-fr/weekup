@@ -83,7 +83,18 @@ class AlarmService {
 
     for (var i = 0; i < alarmList.length; i++) {
       var currentAlarm = AlarmModel.fromMap(json.decode(alarmList[i]));
+
       DateTime? currentAlarmDate = currentAlarm.getNextOccurrence();
+
+      if (currentAlarmDate != null &&
+          currentAlarm.selectedDays.every((day) => !day) &&
+          currentAlarmDate.difference(currentAlarm.createdAt).inDays > 0) {
+        currentAlarm.isActive = false;
+        await editAlarm(context, currentAlarm, i);
+
+        continue;
+      }
+
       if (currentAlarmDate != null &&
           (nextAlarm == null ||
               nextAlarm.getNextOccurrence() == null ||

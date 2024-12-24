@@ -7,9 +7,11 @@ import 'package:my_alarms/services/alarm_service.dart';
 import 'package:my_alarms/theme/colors.dart';
 
 class AlarmRingScreen extends StatefulWidget {
-  const AlarmRingScreen({required this.alarmSettings, super.key});
+  const AlarmRingScreen(
+      {required this.alarmSettings, required this.loadAlarms, super.key});
 
   final AlarmSettings alarmSettings;
+  final Function loadAlarms;
 
   @override
   State<AlarmRingScreen> createState() => _AlarmRingScreenState();
@@ -39,6 +41,7 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
       if (mounted) {
         Navigator.pop(context);
         await alarmService.setNextAlarm(context);
+        await widget.loadAlarms();
       }
     });
   }
