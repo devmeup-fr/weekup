@@ -449,8 +449,10 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
                       setState(() {
                         volume = value;
                       });
-                      VolumeController().setVolume(value / 100);
-                      audioPlayer.setVolume(value / 100);
+                      if (playing) {
+                        VolumeController().setVolume(value / 100);
+                        audioPlayer.setVolume(value / 100);
+                      }
                     },
                   ),
                   const SizedBox(height: 20),
