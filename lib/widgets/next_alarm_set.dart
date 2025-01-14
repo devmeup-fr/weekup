@@ -1,30 +1,38 @@
-import 'package:alarm/alarm.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:my_alarms/core/utils/extension_util.dart';
 import 'package:my_alarms/core/utils/localization_util.dart';
+import 'package:my_alarms/models/alarm_model.dart';
+import 'package:my_alarms/services/alarm_service.dart';
 
-class NextAlarmSet extends StatelessWidget {
+import '../core/blocs/locale_cubit.dart';
+
+class NextAlarmSet extends StatefulWidget {
   const NextAlarmSet({
     super.key,
   });
 
   @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<List<AlarmSettings>?>(
-      future: Alarm.getAlarms(),
-      builder: (context, snapshot) {
-        if (snapshot.hasData &&
-            snapshot.data != null &&
-            snapshot.data!.isNotEmpty) {
-          final nextAlarm = snapshot.data!.first;
-          final now = DateTime.now();
-          final remainingTime = nextAlarm.dateTime.difference(now);
-          final formattedDate =
-              "${nextAlarm.dateTime.day}/${nextAlarm.dateTime.month}/${nextAlarm.dateTime.year}";
-          final formattedHours =
-              remainingTime.inHours.toString().padLeft(2, '0');
-          final formattedMinutes =
-              (remainingTime.inMinutes % 60).toString().padLeft(2, '0');
+  State<NextAlarmSet> createState() => _NextAlarmSetState();
+}
 
+class _NextAlarmSetState extends State<NextAlarmSet> {
+  late AlarmService alarmService;
+
+  @override
+  void initState() {
+    super.initState();
+    alarmService = AlarmService();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<AlarmModel?>(
+      future: alarmService.findNextAlarm(context),
+      builder: (context, snapshot) {
+        final nextAlarm = snapshot.data;
+
+        if (nextAlarm?.getNextOccurrence() != null) {
           return Container(
             width: double.infinity,
             height: MediaQuery.of(context).size.height * 0.25,
@@ -44,22 +52,18 @@ class NextAlarmSet extends StatelessWidget {
                       .displaySmall
                       ?.copyWith(color: Colors.white),
                 ),
-                Text(
-                  "${formattedHours}h ${formattedMinutes}m",
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context)
-                      .textTheme
-                      .displaySmall
-                      ?.copyWith(color: Colors.white),
-                ),
                 const SizedBox(height: 5),
-                Text(
-                  "${context.translate('common.date')} : $formattedDate",
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.copyWith(color: Colors.grey),
-                ),
+                BlocBuilder<LocaleCubit, Locale>(
+                  builder: (context, state) => Text(
+                    nextAlarm!
+                        .getNextOccurrence()!
+                        .formatDateWS(state.languageCode),
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodyLarge
+                        ?.copyWith(color: Colors.grey),
+                  ),
+                )
               ],
             ),
           );
