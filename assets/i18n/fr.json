@@ -30,6 +30,7 @@
     "vibrate": "Vibrer",
     "volume": "Volume",
     "alarm_title": "Titre",
+    "alarm_createdFor": "A partir de : ",
     "select_audio": "Sélectionner la musique",
     "alarm_notification_title": "Votre Alarme",
     "alarm_notification_body": "Votre alarme sonne.",
@@ -45,5 +46,5 @@
     "edit_alarm": "Édition de l'alarme",
     "delete_alarm": "Supprimer l'alarme",
     "snooze_alarm": "Votre alarme sonnera à nouveau dans 5 minutes.",
-    "nextDateTitle": "Prochaine alarme dans"
+    "nextDateTitle": "Prochaine alarme"
 }

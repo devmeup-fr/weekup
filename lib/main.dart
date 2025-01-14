@@ -68,7 +68,7 @@ class MyApp extends StatelessWidget {
               onGenerateTitle: (BuildContext context) =>
                   context.translate("common.appTitle"),
               theme: Themes.light(),
-              home: const PopScope(canPop: false, child: HomeScreen()),
+              home: HomeScreen(),
             ));
   }
 }

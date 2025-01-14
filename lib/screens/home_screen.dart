@@ -62,6 +62,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final res = await showModalBottomSheet<bool?>(
       context: context,
       isScrollControlled: true,
+      isDismissible: false,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10),
       ),
