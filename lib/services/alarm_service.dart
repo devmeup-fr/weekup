@@ -69,19 +69,13 @@ class AlarmService {
     await setNextAlarm(context);
   }
 
-  Future<void> setNextAlarm(BuildContext context) async {
+  Future<AlarmModel?> findNextAlarm(BuildContext context) async {
     final prefs = await SharedPreferences.getInstance();
     final alarmList = prefs.getStringList(alarmKey) ?? [];
 
-    final alarms = await AlarmStorage.getSavedAlarms();
-    for (var alarm in alarms) {
-      await Alarm.stop(alarm.id);
-      await AlarmStorage.unsaveAlarm(alarm.id);
-    }
-
     if (alarmList.isEmpty) {
       // No alarms set, do nothing
-      return;
+      return null;
     }
 
     // find next alarm in the list
@@ -91,6 +85,7 @@ class AlarmService {
       var currentAlarm = AlarmModel.fromMap(json.decode(alarmList[i]));
 
       DateTime? currentAlarmDate = currentAlarm.getNextOccurrence();
+      debugPrint(currentAlarmDate.toString());
 
       if (currentAlarmDate != null &&
           currentAlarm.selectedDays.every((day) => !day) &&
@@ -108,7 +103,17 @@ class AlarmService {
         nextAlarm = currentAlarm;
       }
     }
+    return nextAlarm;
+  }
 
+  Future<void> setNextAlarm(BuildContext context) async {
+    final alarms = await AlarmStorage.getSavedAlarms();
+    for (var alarm in alarms) {
+      await Alarm.stop(alarm.id);
+      await AlarmStorage.unsaveAlarm(alarm.id);
+    }
+
+    AlarmModel? nextAlarm = await findNextAlarm(context);
     if (nextAlarm == null) {
       // No alarms set, do nothing
       return;
