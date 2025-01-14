@@ -10,6 +10,7 @@ class AlarmModel {
   List<bool> selectedDays;
   int recurrenceWeeks;
   DateTime createdAt;
+  DateTime? createdFor;
 
   AlarmModel({
     this.id,
@@ -23,6 +24,7 @@ class AlarmModel {
     this.selectedDays = const [],
     this.recurrenceWeeks = 1,
     DateTime? createdAt, // Default to now if not provided
+    DateTime? createdFor,
   }) : createdAt = createdAt ?? DateTime.now();
 
   // Convert Alarm object to Map (for SharedPreferences storage)
@@ -39,11 +41,14 @@ class AlarmModel {
       'selectedDays': selectedDays,
       'recurrenceWeeks': recurrenceWeeks,
       'createdAt': createdAt.toIso8601String(),
+      'createdFor': createdFor?.toIso8601String(),
     };
   }
 
   // Convert Map to Alarm object
   factory AlarmModel.fromMap(Map<String, dynamic> map) {
+    String? createdFor = map['createdFor'] as String?;
+
     return AlarmModel(
       id: map['id'] as int?,
       title: map['title'] as String?,
@@ -58,6 +63,7 @@ class AlarmModel {
           .toList(),
       recurrenceWeeks: map['recurrenceWeeks'] as int,
       createdAt: DateTime.parse(map['createdAt'] as String),
+      createdFor: createdFor != null ? DateTime.parse(createdFor) : null,
     );
   }
 
@@ -72,13 +78,21 @@ class AlarmModel {
     }
 
     final now = DateTime.now();
-    DateTime nextDate = DateTime(
-      now.year,
-      now.month,
-      now.day,
-      time.hour,
-      time.minute,
-    );
+    DateTime nextDate = createdFor != null
+        ? DateTime(
+            createdFor!.year,
+            createdFor!.month,
+            createdFor!.day,
+            time.hour,
+            time.minute,
+          )
+        : DateTime(
+            createdAt.year,
+            createdAt.month,
+            createdAt.day,
+            time.hour,
+            time.minute,
+          );
 
     // Considérer tous les jours comme actifs si `selectedDays` est entièrement faux
     final allDaysSelected = isAllDaysFalse();
@@ -92,8 +106,8 @@ class AlarmModel {
       final missedOccurrences = weeksSinceCreation ~/ recurrenceWeeks;
 
       // Ajuster `nextDate` si des occurrences ont été manquées
-      nextDate = createdAt
-          .add(Duration(days: missedOccurrences * recurrenceWeeks * 7));
+      nextDate =
+          time.add(Duration(days: missedOccurrences * recurrenceWeeks * 7));
     }
 
     // Avancer jusqu'à la prochaine occurrence valide

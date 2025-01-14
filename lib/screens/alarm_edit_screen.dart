@@ -1,5 +1,6 @@
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
+import 'package:my_alarms/core/utils/extension_util.dart';
 import 'package:my_alarms/core/utils/localization_util.dart';
 import 'package:my_alarms/models/alarm_model.dart';
 import 'package:my_alarms/services/alarm_service.dart';
@@ -27,6 +28,7 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
   double? originalVolume;
 
   late bool creating;
+  late DateTime createdFor;
   late DateTime selectedDateTime;
   late bool loopAudio;
   late bool vibrate;
@@ -78,6 +80,7 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
       assetAudio = 'marimba.mp3';
       selectedDays = List.filled(7, false);
       recurrenceWeeks = 1;
+      createdFor = widget.alarm?.createdFor ?? DateTime.now();
     } else {
       _titleController = TextEditingController(text: widget.alarm!.title ?? '');
       selectedDateTime = widget.alarm!.time;
@@ -87,6 +90,7 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
       assetAudio = widget.alarm!.assetAudio;
       selectedDays = widget.alarm!.selectedDays;
       recurrenceWeeks = widget.alarm!.recurrenceWeeks;
+      createdFor = widget.alarm?.createdFor ?? DateTime.now();
     }
     _scrollHourController =
         FixedExtentScrollController(initialItem: selectedDateTime.hour);
@@ -133,9 +137,29 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
     }
   }
 
+  Future<void> _selectCreatedFor() async {
+    DateTime now = DateTime.now();
+    final DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: createdFor,
+      firstDate: now,
+      lastDate: now.add(Duration(days: 365)),
+    );
+    if (pickedDate != null) {
+      setState(() {
+        createdFor = DateTime(
+          pickedDate.year,
+          pickedDate.month,
+          pickedDate.day,
+          now.hour,
+          now.minute,
+        );
+      });
+    }
+  }
+
   Future<void> saveAlarm() async {
     if (loading) return;
-
     AlarmModel alarmModel = AlarmModel(
         id: widget.index ?? 0,
         title: _titleController.text != '' ? _titleController.text : null,
@@ -144,7 +168,8 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
         volume: volume / 100,
         assetAudio: assetAudio,
         selectedDays: selectedDays,
-        recurrenceWeeks: recurrenceWeeks);
+        recurrenceWeeks: recurrenceWeeks,
+        createdFor: createdFor);
 
     if (creating) {
       setState(() => loading = true);
@@ -329,6 +354,29 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
                   const SizedBox(height: 20),
                   // Heure sélectionnée
                   buildTimeSelector(),
+                  const SizedBox(height: 20),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        context.translate('alarm_createdFor'),
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: _selectCreatedFor,
+                        child: Text(
+                          createdFor.formatDateDay(),
+                          style: const TextStyle(
+                            color: ThemeColors.primary,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 20),
                   Wrap(
                     spacing: 4, // Ajuste l'espace horizontal

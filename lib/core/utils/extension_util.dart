@@ -61,6 +61,8 @@ extension StringExtension on String {
 
 extension DateFormatExtension on DateTime {
   String formatDate() => DateFormat('dd/MM/yyyy HH:mm:ss').format(this);
+  String formatDateWS(local) =>
+      DateFormat('EEE dd/MM/yyyy HH:mm', local).format(this);
   String formatDateDayMonth() => DateFormat('dd/MM').format(this);
   String formatDateDay() => DateFormat('dd/MM/yyyy').format(this);
   String formatDateMin(local) => DateFormat('EEE d MMM', local).format(this);
