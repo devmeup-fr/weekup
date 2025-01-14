@@ -123,6 +123,12 @@ class AlarmService {
       await AlarmStorage.unsaveAlarm(alarm.id);
     }
 
+    AlarmModel? nextAlarm = await findNextAlarm(context);
+    if (nextAlarm == null) {
+      // No alarms set, do nothing
+      return;
+    }
+
     if (context.mounted) {
       AlarmModel? nextAlarm = await findNextAlarm(context);
       if (nextAlarm == null) {
