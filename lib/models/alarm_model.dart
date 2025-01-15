@@ -24,7 +24,7 @@ class AlarmModel {
     this.selectedDays = const [],
     this.recurrenceWeeks = 1,
     DateTime? createdAt, // Default to now if not provided
-    DateTime? createdFor,
+    this.createdFor,
   }) : createdAt = createdAt ?? DateTime.now();
 
   // Convert Alarm object to Map (for SharedPreferences storage)
