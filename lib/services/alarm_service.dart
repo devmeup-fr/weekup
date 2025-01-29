@@ -32,7 +32,9 @@ class AlarmService {
     alarmList.add(alarmMap);
     await prefs.setStringList(alarmKey, alarmList);
 
-    await setNextAlarm(context);
+    if (context.mounted) {
+      await setNextAlarm(context);
+    }
   }
 
   // Edit Alarm object in SharedPreferences
@@ -54,7 +56,9 @@ class AlarmService {
     // Save the updated alarm list back to SharedPreferences
     await prefs.setStringList(alarmKey, alarmList);
 
-    await setNextAlarm(context);
+    if (context.mounted) {
+      await setNextAlarm(context);
+    }
   }
 
   // Delete Alarm from SharedPreferences by index
@@ -66,7 +70,9 @@ class AlarmService {
       alarmList.removeAt(index);
       await prefs.setStringList(alarmKey, alarmList);
     }
-    await setNextAlarm(context);
+    if (context.mounted) {
+      await setNextAlarm(context);
+    }
   }
 
   Future<AlarmModel?> findNextAlarm(BuildContext context) async {
@@ -94,8 +100,9 @@ class AlarmService {
                   .inDays >
               0) {
         currentAlarm.isActive = false;
-        await editAlarm(context, currentAlarm, i);
-
+        if (context.mounted) {
+          await editAlarm(context, currentAlarm, i);
+        }
         continue;
       }
 
@@ -116,31 +123,35 @@ class AlarmService {
       await AlarmStorage.unsaveAlarm(alarm.id);
     }
 
-    AlarmModel? nextAlarm = await findNextAlarm(context);
-    if (nextAlarm == null) {
-      // No alarms set, do nothing
-      return;
+    if (context.mounted) {
+      AlarmModel? nextAlarm = await findNextAlarm(context);
+      if (nextAlarm == null) {
+        // No alarms set, do nothing
+        return;
+      }
+
+      if (context.mounted) {
+        // Convert AlarmMap to AlarmModel and set it as the next alarm
+        AlarmSettings alarmSettings = AlarmSettings(
+          id: nextAlarm.id != null ? (nextAlarm.id! + 1) : 1,
+          dateTime: nextAlarm.getNextOccurrence()!,
+          loopAudio: nextAlarm.loopAudio,
+          vibrate: nextAlarm.vibrate,
+          volume: nextAlarm.volume,
+          fadeDuration: 3.0,
+          androidFullScreenIntent: true,
+          warningNotificationOnKill: Platform.isIOS,
+          assetAudioPath: "assets/musics/${nextAlarm.assetAudio}",
+          notificationSettings: NotificationSettings(
+            title: nextAlarm.title ??
+                context.translate('alarm_notification_title'),
+            body: context.translate('alarm_notification_body'),
+            stopButton: context.translate('stop_alarm_button'),
+            icon: 'notification_icon',
+          ),
+        );
+        Alarm.set(alarmSettings: alarmSettings);
+      }
     }
-
-    // Convert AlarmMap to AlarmModel and set it as the next alarm
-    AlarmSettings alarmSettings = AlarmSettings(
-      id: nextAlarm.id != null ? (nextAlarm.id! + 1) : 1,
-      dateTime: nextAlarm.getNextOccurrence()!,
-      loopAudio: nextAlarm.loopAudio,
-      vibrate: nextAlarm.vibrate,
-      volume: nextAlarm.volume,
-      fadeDuration: 3.0,
-      androidFullScreenIntent: true,
-      warningNotificationOnKill: Platform.isIOS,
-      assetAudioPath: "assets/musics/${nextAlarm.assetAudio}",
-      notificationSettings: NotificationSettings(
-        title: nextAlarm.title ?? context.translate('alarm_notification_title'),
-        body: context.translate('alarm_notification_body'),
-        stopButton: context.translate('stop_alarm_button'),
-        icon: 'notification_icon',
-      ),
-    );
-
-    Alarm.set(alarmSettings: alarmSettings);
   }
 }

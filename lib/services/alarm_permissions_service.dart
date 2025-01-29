@@ -7,15 +7,19 @@ class AlarmPermissionsService {
   static Future<void> checkNotificationPermission(BuildContext context) async {
     final status = await Permission.notification.status;
     if (status.isDenied) {
-      alarmPrint(context.translate('requesting_notification_permission'));
+      if (context.mounted) {
+        alarmPrint(context.translate('requesting_notification_permission'));
+      }
       final res = await Permission.notification.request();
-      alarmPrint(
-        context.translate(
-          res.isGranted
-              ? 'notification_permission_granted'
-              : 'notification_permission_denied',
-        ),
-      );
+      if (context.mounted) {
+        alarmPrint(
+          context.translate(
+            res.isGranted
+                ? 'notification_permission_granted'
+                : 'notification_permission_denied',
+          ),
+        );
+      }
     }
   }
 
@@ -23,38 +27,48 @@ class AlarmPermissionsService {
       BuildContext context) async {
     final status = await Permission.storage.status;
     if (status.isDenied) {
-      alarmPrint(context.translate('requesting_external_storage_permission'));
+      if (context.mounted) {
+        alarmPrint(context.translate('requesting_external_storage_permission'));
+      }
       final res = await Permission.storage.request();
-      alarmPrint(
-        context.translate(
-          res.isGranted
-              ? 'external_storage_permission_granted'
-              : 'external_storage_permission_denied',
-        ),
-      );
+      if (context.mounted) {
+        alarmPrint(
+          context.translate(
+            res.isGranted
+                ? 'external_storage_permission_granted'
+                : 'external_storage_permission_denied',
+          ),
+        );
+      }
     }
   }
 
   static Future<void> checkAndroidScheduleExactAlarmPermission(
       BuildContext context) async {
     final status = await Permission.scheduleExactAlarm.status;
-    alarmPrint(
-      context.translate(
-        'schedule_exact_alarm_permission_status',
-        translationParams: {'status': status.toString()},
-      ),
-    );
-    if (status.isDenied) {
-      alarmPrint(
-          context.translate('requesting_schedule_exact_alarm_permission'));
-      final res = await Permission.scheduleExactAlarm.request();
+    if (context.mounted) {
       alarmPrint(
         context.translate(
-          res.isGranted
-              ? 'schedule_exact_alarm_permission_granted'
-              : 'schedule_exact_alarm_permission_denied',
+          'schedule_exact_alarm_permission_status',
+          translationParams: {'status': status.toString()},
         ),
       );
+    }
+    if (status.isDenied) {
+      if (context.mounted) {
+        alarmPrint(
+            context.translate('requesting_schedule_exact_alarm_permission'));
+      }
+      final res = await Permission.scheduleExactAlarm.request();
+      if (context.mounted) {
+        alarmPrint(
+          context.translate(
+            res.isGranted
+                ? 'schedule_exact_alarm_permission_granted'
+                : 'schedule_exact_alarm_permission_denied',
+          ),
+        );
+      }
     }
   }
 }
