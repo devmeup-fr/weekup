@@ -89,7 +89,10 @@ class AlarmService {
 
       if (currentAlarmDate != null &&
           currentAlarm.selectedDays.every((day) => !day) &&
-          currentAlarmDate.difference(currentAlarm.createdAt).inDays > 0) {
+          currentAlarmDate
+                  .difference(currentAlarm.createdFor ?? currentAlarm.createdAt)
+                  .inDays >
+              0) {
         currentAlarm.isActive = false;
         await editAlarm(context, currentAlarm, i);
 

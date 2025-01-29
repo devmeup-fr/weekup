@@ -124,9 +124,17 @@ class _HomeScreenState extends State<HomeScreen> {
                                 alarms[index],
                                 index: index),
                             onDismissed: () async {
+                              final removedAlarm = alarms.removeAt(index);
+                              setState(() {});
                               await alarmService
                                   .deleteAlarm(context, index)
-                                  .then((_) => loadAlarms());
+                                  .then((_) => loadAlarms())
+                                  .catchError((error) {
+                                // Réinsère l'élément si une erreur survient
+                                setState(() {
+                                  alarms.insert(index, removedAlarm);
+                                });
+                              });
                             },
                             onToggleActive: (value) async {
                               setState(() {
@@ -169,7 +177,7 @@ class _HomeScreenState extends State<HomeScreen> {
       floatingActionButton: Padding(
         padding: const EdgeInsets.all(10),
         child: FloatingActionButton(
-          onPressed: () => navigateToAlarmScreen(null),
+          onPressed: () => navigateToAlarmScreen(null, index: alarms.length),
           backgroundColor: Theme.of(context).colorScheme.primary,
           child: const Icon(Icons.alarm_add_rounded, size: 33),
         ),
