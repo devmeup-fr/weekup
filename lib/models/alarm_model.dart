@@ -76,29 +76,22 @@ class AlarmModel {
     if (!isActive) {
       return null; // Alarm is inactive
     }
+    DateTime dateInit = createdFor ?? createdAt;
 
     final now = DateTime.now();
-    DateTime nextDate = createdFor != null
-        ? DateTime(
-            createdFor!.year,
-            createdFor!.month,
-            createdFor!.day,
-            time.hour,
-            time.minute,
-          )
-        : DateTime(
-            createdAt.year,
-            createdAt.month,
-            createdAt.day,
-            time.hour,
-            time.minute,
-          );
+    DateTime nextDate = DateTime(
+      dateInit.year,
+      dateInit.month,
+      dateInit.day,
+      time.hour,
+      time.minute,
+    );
 
     // Considérer tous les jours comme actifs si `selectedDays` est entièrement faux
     final allDaysSelected = isAllDaysFalse();
 
     // Calculer la différence totale en jours depuis la création
-    final totalDaysSinceCreation = now.difference(createdAt).inDays;
+    final totalDaysSinceCreation = now.difference(dateInit).inDays;
 
     // Vérifie si des occurrences auraient dû être déclenchées dans le passé
     if (totalDaysSinceCreation > 0) {
@@ -116,7 +109,7 @@ class AlarmModel {
       nextDate = nextDate.add(Duration(days: 1)); // Vérifier le jour suivant
 
       // Vérifier la condition de récurrence
-      final daysFromCreation = nextDate.difference(createdAt).inDays;
+      final daysFromCreation = nextDate.difference(dateInit).inDays;
       if ((daysFromCreation ~/ 7) % recurrenceWeeks != 0) {
         // Sauter aux prochaines semaines valides
         final weeksToAdd =
