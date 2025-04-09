@@ -56,9 +56,7 @@ class AlarmService {
     // Save the updated alarm list back to SharedPreferences
     await prefs.setStringList(alarmKey, alarmList);
 
-    if (context.mounted) {
-      await setNextAlarm(context);
-    }
+    await setNextAlarm(context);
   }
 
   // Delete Alarm from SharedPreferences by index
@@ -70,9 +68,7 @@ class AlarmService {
       alarmList.removeAt(index);
       await prefs.setStringList(alarmKey, alarmList);
     }
-    if (context.mounted) {
-      await setNextAlarm(context);
-    }
+    await setNextAlarm(context);
   }
 
   Future<AlarmModel?> findNextAlarm(BuildContext context) async {
@@ -114,7 +110,7 @@ class AlarmService {
   }
 
   Future<void> setNextAlarm(BuildContext context) async {
-    final alarms = await AlarmStorage.getSavedAlarms();
+    List<AlarmSettings> alarms = await AlarmStorage.getSavedAlarms();
     for (var alarm in alarms) {
       await Alarm.stop(alarm.id);
       await AlarmStorage.unsaveAlarm(alarm.id);

@@ -73,9 +73,6 @@ class AlarmModel {
   }
 
   DateTime getDateFor() {
-    print("getDateFor");
-    print(createdFor);
-    print(createdAt);
     if (createdFor != null && createdFor!.isAfter(createdAt)) {
       return createdFor!;
     }
