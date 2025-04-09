@@ -25,7 +25,8 @@ class AlarmModel {
     this.recurrenceWeeks = 1,
     DateTime? createdAt, // Default to now if not provided
     DateTime? createdFor,
-  }) : createdAt = createdAt ?? DateTime.now();
+  })  : createdAt = createdAt?.toUtc() ?? DateTime.now().toUtc(),
+        createdFor = createdFor?.toUtc();
 
   // Convert Alarm object to Map (for SharedPreferences storage)
   Map<String, dynamic> toMap() {
@@ -76,10 +77,11 @@ class AlarmModel {
     if (!isActive) {
       return null; // Alarm is inactive
     }
-    DateTime dateInit = createdFor ?? createdAt;
 
-    final now = DateTime.now();
-    DateTime nextDate = DateTime(
+    DateTime dateInit = (createdFor ?? createdAt);
+    final now = DateTime.now().toUtc();
+
+    DateTime nextDate = DateTime.utc(
       dateInit.year,
       dateInit.month,
       dateInit.day,
