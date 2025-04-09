@@ -62,12 +62,12 @@ extension StringExtension on String {
 extension DateFormatExtension on DateTime {
   String formatDate() => DateFormat('dd/MM/yyyy HH:mm:ss').format(this);
   String formatDateWS(local) =>
-      DateFormat('EEE dd/MM/yyyy HH:mm', local).format(this);
+      DateFormat('EEE dd/MM/yyyy HH:mm', local).format(toLocal());
   String formatDateDayMonth() => DateFormat('dd/MM').format(this);
   String formatDateDay() => DateFormat('dd/MM/yyyy').format(this);
   String formatDateMin(local) => DateFormat('EEE d MMM', local).format(this);
   String formatDateHour() => DateFormat('HH:mm:ss').format(this);
-  String formatTime() => DateFormat('HH:mm').format(this);
+  String formatTime() => DateFormat('HH:mm').format(toLocal());
   String formatDayOfWeek() => DateFormat('dddd').format(this);
   String formatDayStringOfWeek() => DateFormat('EEEE').format(this);
 

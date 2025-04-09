@@ -153,7 +153,7 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
           pickedDate.day,
           now.hour,
           now.minute,
-        );
+        ).toUtc();
       });
     }
   }

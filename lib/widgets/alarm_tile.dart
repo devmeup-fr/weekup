@@ -41,142 +41,144 @@ class AlarmTile extends StatelessWidget {
       child: GestureDetector(
         onTap: onPressed,
         child: Card(
-          color: Colors.transparent,
-          elevation: 0,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(
-                      Icons.alarm_rounded,
-                      size: 30,
-                      color: alarm.isActive
-                          ? Colors.white
-                          : Colors.white.withOpacity(0.3),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (alarm.title != null && alarm.title != "")
+            color: Colors.transparent,
+            elevation: 0,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.alarm_rounded,
+                        size: 30,
+                        color: alarm.isActive
+                            ? Colors.white
+                            : Colors.white.withOpacity(0.3),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (alarm.title != null && alarm.title != "")
+                              Text(
+                                alarm.title!,
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: alarm.isActive
+                                      ? Colors.grey.shade600
+                                      : Colors.grey.shade600.withOpacity(0.3),
+                                ),
+                              ),
+                            if (alarm.title != null && alarm.title != "")
+                              const SizedBox(height: 4),
                             Text(
-                              alarm.title!,
+                              alarm.time.formatTime(),
                               style: TextStyle(
-                                fontSize: 16,
+                                fontSize: 48,
                                 color: alarm.isActive
-                                    ? Colors.grey.shade600
-                                    : Colors.grey.shade600.withOpacity(0.3),
+                                    ? Colors.white
+                                    : Colors.white.withOpacity(0.3),
                               ),
                             ),
-                          if (alarm.title != null && alarm.title != "")
-                            const SizedBox(height: 4),
-                          Text(
-                            alarm.time.formatTime(),
-                            style: TextStyle(
-                              fontSize: 48,
-                              color: alarm.isActive
-                                  ? Colors.white
-                                  : Colors.white.withOpacity(0.3),
-                            ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                    Switch(
-                      value: alarm.isActive,
-                      onChanged: (value) {
-                        onToggleActive(value);
-                      },
-                      activeColor: Colors.white,
-                      inactiveTrackColor: Colors.grey,
-                    ),
-                    const Icon(
-                      Icons.keyboard_arrow_right_rounded,
-                      size: 35,
-                      color: Colors.grey,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                BlocBuilder<LocaleCubit, Locale>(
-                  builder: (context, state) => Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            (alarm.getNextOccurrence() != null)
-                                ? Text(
-                                    alarm.getNextOccurrence()?.formatDateMin(
-                                            state.languageCode) ??
-                                        '',
+                      Switch(
+                        value: alarm.isActive,
+                        onChanged: (value) {
+                          onToggleActive(value);
+                        },
+                        activeColor: Colors.white,
+                        inactiveTrackColor: Colors.grey,
+                      ),
+                      const Icon(
+                        Icons.keyboard_arrow_right_rounded,
+                        size: 35,
+                        color: Colors.grey,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  BlocBuilder<LocaleCubit, Locale>(
+                    builder: (context, state) => Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              (alarm.getNextOccurrence() != null)
+                                  ? Text(
+                                      alarm.getNextOccurrence()?.formatDateMin(
+                                              state.languageCode) ??
+                                          '',
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey,
+                                      ),
+                                    )
+                                  : Container(),
+                              if (!alarm.isAllDaysFalse())
+                                Padding(
+                                    padding: EdgeInsets.only(right: 8),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.end,
+                                      children: List.generate(7, (index) {
+                                        final isSelected =
+                                            alarm.selectedDays.length > index
+                                                ? alarm.selectedDays[index]
+                                                : false;
+                                        return Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 4),
+                                          child: Text(
+                                            context
+                                                .translate('day_${index + 1}'),
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.bold,
+                                              color: isSelected
+                                                  ? Colors.white
+                                                  : Colors.white
+                                                      .withOpacity(0.3),
+                                            ),
+                                          ),
+                                        );
+                                      }),
+                                    ))
+                            ]),
+                        if (!alarm.isAllDaysFalse()) const SizedBox(height: 4),
+                        if (!alarm.isAllDaysFalse())
+                          Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                Padding(
+                                  padding: EdgeInsets.only(right: 12),
+                                  child: Text(
+                                    context.translate(
+                                      alarm.recurrenceWeeks == 1
+                                          ? 'repeat_every_week'
+                                          : 'x_weeks',
+                                      translationParams: {
+                                        'weeks':
+                                            alarm.recurrenceWeeks.toString(),
+                                      },
+                                    ),
                                     style: const TextStyle(
                                       fontSize: 12,
                                       color: Colors.grey,
                                     ),
-                                  )
-                                : Container(),
-                            if (!alarm.isAllDaysFalse())
-                              Padding(
-                                  padding: EdgeInsets.only(right: 8),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.end,
-                                    children: List.generate(7, (index) {
-                                      final isSelected =
-                                          alarm.selectedDays.length > index
-                                              ? alarm.selectedDays[index]
-                                              : false;
-                                      return Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 4),
-                                        child: Text(
-                                          context.translate('day_${index + 1}'),
-                                          style: TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.bold,
-                                            color: isSelected
-                                                ? Colors.white
-                                                : Colors.white.withOpacity(0.3),
-                                          ),
-                                        ),
-                                      );
-                                    }),
-                                  ))
-                          ]),
-                      if (!alarm.isAllDaysFalse()) const SizedBox(height: 4),
-                      if (!alarm.isAllDaysFalse())
-                        Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              Padding(
-                                padding: EdgeInsets.only(right: 12),
-                                child: Text(
-                                  context.translate(
-                                    alarm.recurrenceWeeks == 1
-                                        ? 'repeat_every_week'
-                                        : 'x_weeks',
-                                    translationParams: {
-                                      'weeks': alarm.recurrenceWeeks.toString(),
-                                    },
                                   ),
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                              )
-                            ])
-                    ],
+                                )
+                              ])
+                      ],
+                    ),
                   ),
-                )
-              ],
-            ),
-          ),
-        ),
+                ],
+              ),
+            )),
       ),
     );
   }

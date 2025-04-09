@@ -25,8 +25,7 @@ class AlarmModel {
     this.recurrenceWeeks = 1,
     DateTime? createdAt, // Default to now if not provided
     DateTime? createdFor,
-  })  : createdAt = createdAt?.toUtc() ?? DateTime.now().toUtc(),
-        createdFor = createdFor?.toUtc();
+  }) : createdAt = createdAt?.toUtc() ?? DateTime.now().toUtc();
 
   // Convert Alarm object to Map (for SharedPreferences storage)
   Map<String, dynamic> toMap() {
@@ -72,22 +71,29 @@ class AlarmModel {
     return selectedDays.every((day) => !day);
   }
 
+  DateTime getDateFor() {
+    if (createdFor != null && createdFor!.isBefore(createdAt)) {
+      return createdFor!;
+    }
+    return createdAt;
+  }
+
   /// Calculate the next occurrence of the alarm considering past missed alarms.
   DateTime? getNextOccurrence() {
     if (!isActive) {
       return null; // Alarm is inactive
     }
 
-    DateTime dateInit = (createdFor ?? createdAt);
-    final now = DateTime.now().toUtc();
+    DateTime dateInit = getDateFor();
+    final now = DateTime.now();
 
-    DateTime nextDate = DateTime.utc(
+    DateTime nextDate = DateTime(
       dateInit.year,
       dateInit.month,
       dateInit.day,
       time.hour,
       time.minute,
-    );
+    ).toUtc();
 
     // Considérer tous les jours comme actifs si `selectedDays` est entièrement faux
     final allDaysSelected = isAllDaysFalse();
