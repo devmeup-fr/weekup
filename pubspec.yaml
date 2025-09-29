@@ -54,5 +54,6 @@ flutter_launcher_icons:
   image_path: 'assets/images/my_alarm_icon.png'
   min_sdk_android: 24
   adaptive_icon_background: '#ffffff'
-  adaptive_icon_foreground_inset: 24
+  adaptive_icon_foreground: 'assets/images/my_alarm_icon.png'
+  adaptive_icon_foreground_inset: 16
   adaptive_icon_monochrome: 'assets/images/my_alarm_icon_monochrome.png'
