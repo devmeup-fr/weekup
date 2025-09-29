@@ -24,8 +24,9 @@ class AlarmModel {
     this.selectedDays = const [],
     this.recurrenceWeeks = 1,
     DateTime? createdAt, // Default to now if not provided
-    this.createdFor,
-  }) : createdAt = createdAt ?? DateTime.now();
+    DateTime? createdFor,
+  })  : createdAt = createdAt?.toUtc() ?? DateTime.now().toUtc(),
+        createdFor = createdFor?.toUtc() ?? DateTime.now().toUtc();
 
   // Convert Alarm object to Map (for SharedPreferences storage)
   Map<String, dynamic> toMap() {
@@ -71,12 +72,20 @@ class AlarmModel {
     return selectedDays.every((day) => !day);
   }
 
+  DateTime getDateFor() {
+    if (createdFor != null && createdFor!.isAfter(createdAt)) {
+      return createdFor!;
+    }
+    return createdAt;
+  }
+
   /// Calculate the next occurrence of the alarm considering past missed alarms.
   DateTime? getNextOccurrence() {
     if (!isActive) {
       return null; // Alarm is inactive
     }
 
+    DateTime dateInit = getDateFor();
     final now = DateTime.now();
     DateTime nextDate = DateTime(
       createdFor?.year ?? createdAt.year,
@@ -109,7 +118,7 @@ class AlarmModel {
       nextDate = nextDate.add(Duration(days: 1)); // Vérifier le jour suivant
 
       // Vérifier la condition de récurrence
-      final daysFromCreation = nextDate.difference(createdAt).inDays;
+      final daysFromCreation = nextDate.difference(dateInit).inDays;
       if ((daysFromCreation ~/ 7) % recurrenceWeeks != 0) {
         // Sauter aux prochaines semaines valides
         final weeksToAdd =

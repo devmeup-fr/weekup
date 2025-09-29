@@ -95,10 +95,7 @@ class AlarmService {
 
       if (currentAlarmDate != null &&
           currentAlarm.selectedDays.every((day) => !day) &&
-          currentAlarmDate
-                  .difference(currentAlarm.createdFor ?? currentAlarm.createdAt)
-                  .inDays >
-              0) {
+          currentAlarmDate.difference(currentAlarm.getDateFor()).inDays > 0) {
         currentAlarm.isActive = false;
         if (context.mounted) {
           await editAlarm(context, currentAlarm, i);
@@ -117,7 +114,7 @@ class AlarmService {
   }
 
   Future<void> setNextAlarm(BuildContext context) async {
-    final alarms = await AlarmStorage.getSavedAlarms();
+    List<AlarmSettings> alarms = await AlarmStorage.getSavedAlarms();
     for (var alarm in alarms) {
       await Alarm.stop(alarm.id);
       await AlarmStorage.unsaveAlarm(alarm.id);

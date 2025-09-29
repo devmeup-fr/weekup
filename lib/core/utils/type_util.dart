@@ -193,9 +193,7 @@ String formatDuration(int seconds) {
 
   String formattedDuration = '';
 
-  if (duration.inDays > 0) {
-    formattedDuration += "${duration.inDays}.";
-  }
+  formattedDuration += "${duration.inDays}.";
   formattedDuration += "${twoDigits(duration.inHours.remainder(24))}:";
   formattedDuration += "${twoDigits(duration.inMinutes.remainder(60))}:";
   formattedDuration += twoDigits(duration.inSeconds.remainder(60));

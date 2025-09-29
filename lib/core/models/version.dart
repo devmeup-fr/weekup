@@ -66,7 +66,6 @@ class Version {
         onlyRadix: true,
         separator: '',
         padLeft: 0);
-
     return '$majorVersionString.$minorVersionString.$buildString.$revisionString';
   }
 }

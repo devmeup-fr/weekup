@@ -111,7 +111,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     itemCount: alarms.length,
                     itemBuilder: (context, index) {
                       return Card(
-                        color: Colors.white.withOpacity(0.13),
+                        color: Colors.white.withValues(alpha: 0.13),
                         margin: const EdgeInsets.symmetric(
                             horizontal: 12, vertical: 8),
                         shape: RoundedRectangleBorder(

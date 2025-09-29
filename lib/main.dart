@@ -3,8 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:my_alarms/theme/colors.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/blocs/locale_cubit.dart';
@@ -18,21 +19,49 @@ const bool MODE_MOCK = false;
 const bool WITH_CLEAN_PREF = false;
 
 void main() async {
-  WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
-  await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+  WidgetsFlutterBinding.ensureInitialized();
+
+  setSystemUIMode();
+  requestPermissions();
+
   await Alarm.init();
-  FlutterNativeSplash.remove();
 
   // CLEAN PREF USE
   if (WITH_CLEAN_PREF) {
     await handlerCleanPref();
   }
+
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+  ]);
+
+  final Locale initialLocale = await getStoredLocale();
+
   runApp(
     MultiBlocProvider(providers: [
-      BlocProvider(create: (_) => LocaleCubit()),
+      BlocProvider(create: (_) => LocaleCubit(initialLocale)),
     ], child: const MyApp()),
   );
+}
+
+void setSystemUIMode() {
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    statusBarColor: Colors.transparent,
+    statusBarIconBrightness: Brightness.dark,
+    systemNavigationBarColor: ThemeColors.primary,
+    systemNavigationBarDividerColor: ThemeColors.primary,
+    systemNavigationBarIconBrightness: Brightness.light,
+  ));
+}
+
+Future<void> requestPermissions() async {
+  await [
+    Permission.storage,
+    Permission.notification,
+    Permission.scheduleExactAlarm,
+  ].request();
 }
 
 Future<void> handlerCleanPref() async {
