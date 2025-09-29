@@ -45,7 +45,7 @@ class Themes {
         ),
         iconTheme: const IconThemeData(),
 
-        cardTheme: const CardTheme(
+        cardTheme: const CardThemeData(
           color: Colors.white,
           elevation: 4,
         ),

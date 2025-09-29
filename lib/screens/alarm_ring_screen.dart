@@ -101,7 +101,7 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
             icon: AnimatedIcons.play_pause,
             progress: AlwaysStoppedAnimation(0.5),
             size: 120,
-            color: Colors.white.withOpacity(0.9),
+            color: Colors.white.withValues(alpha: 0.9),
           ),
           const SizedBox(height: 30),
           // Titre principal

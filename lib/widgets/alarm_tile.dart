@@ -55,7 +55,7 @@ class AlarmTile extends StatelessWidget {
                         size: 30,
                         color: alarm.isActive
                             ? Colors.white
-                            : Colors.white.withOpacity(0.3),
+                            : Colors.white.withValues(alpha: 0.3),
                       ),
                       const SizedBox(width: 16),
                       Expanded(
@@ -69,7 +69,8 @@ class AlarmTile extends StatelessWidget {
                                   fontSize: 16,
                                   color: alarm.isActive
                                       ? Colors.grey.shade600
-                                      : Colors.grey.shade600.withOpacity(0.3),
+                                      : Colors.grey.shade600
+                                          .withValues(alpha: 0.3),
                                 ),
                               ),
                             if (alarm.title != null && alarm.title != "")
@@ -80,7 +81,7 @@ class AlarmTile extends StatelessWidget {
                                 fontSize: 48,
                                 color: alarm.isActive
                                     ? Colors.white
-                                    : Colors.white.withOpacity(0.3),
+                                    : Colors.white.withValues(alpha: 0.3),
                               ),
                             ),
                           ],
@@ -142,7 +143,7 @@ class AlarmTile extends StatelessWidget {
                                               color: isSelected
                                                   ? Colors.white
                                                   : Colors.white
-                                                      .withOpacity(0.3),
+                                                      .withValues(alpha: 0.3),
                                             ),
                                           ),
                                         );
