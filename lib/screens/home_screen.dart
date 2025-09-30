@@ -70,7 +70,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       builder: (context) {
         return FractionallySizedBox(
-          heightFactor: alarm != null ? 0.75 : 0.6,
+          heightFactor: 0.65,
           child: AlarmEditScreen(
             alarm: alarm,
             index: index,

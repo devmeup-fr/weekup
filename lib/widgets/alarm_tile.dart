@@ -105,8 +105,6 @@ class AlarmTile extends StatelessWidget {
                         onChanged: (value) {
                           onToggleActive(value);
                         },
-                        activeThumbColor: Colors.white,
-                        inactiveTrackColor: Colors.grey,
                       ),
                       const Icon(
                         Icons.keyboard_arrow_right_rounded,

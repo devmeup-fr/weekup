@@ -18,6 +18,8 @@ class AlarmEditScreen extends StatefulWidget {
 }
 
 class _AlarmEditScreenState extends State<AlarmEditScreen> {
+  late ScrollController _scrollController;
+
   late FixedExtentScrollController _scrollMinController;
   late FixedExtentScrollController _scrollHourController;
   late TextEditingController _titleController;
@@ -38,6 +40,7 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
 
   late List<bool> selectedDays;
   late int recurrenceWeeks;
+  bool showMoreOptions = false;
 
   final audioOptions = [
     'ciucciarella.mp3',
@@ -63,6 +66,8 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
   @override
   void initState() {
     super.initState();
+    _scrollController = ScrollController();
+
     alarmService = AlarmService();
     VolumeController()
         .getVolume()
@@ -101,6 +106,8 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
   @override
   void dispose() async {
     super.dispose();
+    _scrollController.dispose();
+
     // Restore the original volume
     double volume = await VolumeController().getVolume();
     if (originalVolume != null && originalVolume != volume) {
@@ -313,461 +320,492 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-        appBar: AppBar(
-          actions: [
-            // Bouton Annuler avec icône
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              style: TextButton.styleFrom(
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                textStyle: TextStyle(fontSize: 16),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.close,
-                      size: 18, color: Colors.white), // Icône "Fermer"
-                  SizedBox(width: 8),
-                  Text(context.translate('cancel')),
-                ],
-              ),
-            ),
-          ],
-        ),
-        body: Stack(
-          children: [
-            Padding(
-              padding: EdgeInsets.fromLTRB(16, 8, 16, creating ? 16 : 90),
-              child: ListView(
-                children: [
-                  // Heure sélectionnée
-                  buildTimeSelector(),
-                  const SizedBox(height: 8),
-                  LayoutBuilder(
-                    builder: (context, constraints) {
-                      const spacing = 3.0;
-                      final itemWidth =
-                          (constraints.maxWidth - spacing * 6) / 7;
-
-                      return Wrap(
-                        spacing: spacing,
-                        runSpacing: 0,
-                        children: List.generate(7, (index) {
-                          final day = context.translate('day_${index + 1}');
-
-                          return SizedBox(
-                            width: itemWidth,
-                            child: ChoiceChip(
-                              label: FittedBox(
-                                fit: BoxFit.scaleDown,
-                                child: Text(day, maxLines: 1),
-                              ),
-                              showCheckmark: false,
-                              selected: selectedDays[index],
-                              onSelected: (selected) {
-                                setState(() => selectedDays[index] = selected);
-                              },
-                              selectedColor: ThemeColors.primary,
-                              backgroundColor: Colors.white,
-                              materialTapTargetSize:
-                                  MaterialTapTargetSize.shrinkWrap,
-                              labelPadding:
-                                  const EdgeInsets.symmetric(horizontal: 6),
-                              visualDensity: const VisualDensity(
-                                  horizontal: -2, vertical: -2),
-                            ),
-                          );
-                        }),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 8),
-
-                  // Récurrence toutes les X semaines
-                  Container(
-                      padding: const EdgeInsets.only(left: 8),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(context.translate(
-                              recurrenceWeeks == 1
-                                  ? 'repeat_every_week'
-                                  : 'x_weeks',
-                              translationParams: {
-                                "weeks": recurrenceWeeks.toString()
-                              })),
-                          Expanded(
-                            child: Slider(
-                              min: 1,
-                              max: 4,
-                              divisions: 3,
-                              value: recurrenceWeeks.toDouble(),
-                              onChanged: (value) {
-                                setState(() {
-                                  recurrenceWeeks = value.toInt();
-                                });
-                              },
-                            ),
-                          ),
-                        ],
-                      )),
-                  Container(
-                    padding: const EdgeInsets.only(left: 16),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          context.translate('alarm_createdFor'),
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        TextButton(
-                          onPressed: _selectCreatedFor,
-                          child: Text(
-                            createdFor.formatDateDay(),
-                            style: const TextStyle(
-                              color: ThemeColors.primary,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  if (!creating) ...[
-                    const SizedBox(height: 16),
-                    // --- Alarm Title ---
-                    Container(
-                      margin: const EdgeInsets.symmetric(vertical: 2),
-                      padding: const EdgeInsets.only(
-                          top: 4, bottom: 4, left: 16, right: 18),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.label, size: 20),
-                          const SizedBox(width: 8),
-                          Text(
-                            context.translate('alarm_title'),
-                            style: const TextStyle(
-                                fontSize: 16, fontWeight: FontWeight.w600),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: TextField(
-                              controller: _titleController,
-                              textAlign: TextAlign.right,
-                              decoration: InputDecoration(
-                                isDense: true,
-                                border: InputBorder.none,
-                                enabledBorder: InputBorder.none,
-                                focusedBorder: InputBorder.none,
-                                contentPadding: const EdgeInsets.symmetric(
-                                    vertical: 8, horizontal: 0),
-                                hintText: context
-                                    .translate('alarm_title_placeholder'),
-                                hintStyle: const TextStyle(
-                                    fontSize: 14, color: Colors.grey),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-// --- Select Audio ---
-                    Container(
-                      margin: const EdgeInsets.symmetric(vertical: 2),
-                      padding: const EdgeInsets.only(
-                          top: 4, bottom: 4, left: 16, right: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.music_note, size: 20),
-                          const SizedBox(width: 8),
-                          Text(
-                            context.translate('select_audio'),
-                            style: const TextStyle(
-                                fontSize: 16, fontWeight: FontWeight.w600),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: DropdownButtonHideUnderline(
-                              child: DropdownButton<String>(
-                                value: assetAudio,
-                                isExpanded: true,
-                                alignment: Alignment.centerRight,
-                                icon: const Icon(Icons.arrow_drop_down),
-                                onChanged: (String? newValue) {
-                                  setState(() {
-                                    playing = false;
-                                    assetAudio = newValue!;
-                                  });
-                                },
-                                items: audioOptions
-                                    .map<DropdownMenuItem<String>>(
-                                        (String value) {
-                                  final label = value
-                                      .split('/')
-                                      .last
-                                      .replaceAll('.mp3', '')
-                                      .replaceAll('_', ' ')
-                                      .replaceFirstMapped(
-                                        RegExp(r'^[a-zA-Z]'),
-                                        (m) => m.group(0)!.toUpperCase(),
-                                      );
-                                  return DropdownMenuItem<String>(
-                                    value: value,
-                                    child: Text(
-                                      label,
-                                      style: const TextStyle(fontSize: 15),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  );
-                                }).toList(),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          IconButton(
-                            onPressed: playAudio,
-                            icon:
-                                Icon(playing ? Icons.pause : Icons.play_arrow),
-                            color: playing
-                                ? ThemeColors.secondary
-                                : ThemeColors.primary,
-                            iconSize: 24,
-                            splashRadius: 22,
-                          ),
-                        ],
-                      ),
-                    ),
-
-// --- Volume ---
-                    Container(
-                      margin: const EdgeInsets.symmetric(vertical: 2),
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 4, horizontal: 16),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.volume_up, size: 20),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              context.translate('volume'),
-                              style: const TextStyle(
-                                  fontSize: 16, fontWeight: FontWeight.w600),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            flex: 3,
-                            child: SliderTheme(
-                              data: SliderTheme.of(context).copyWith(
-                                trackHeight: 3,
-                                thumbShape: const RoundSliderThumbShape(
-                                    enabledThumbRadius: 8),
-                              ),
-                              child: Slider(
-                                value: volume,
-                                min: 0,
-                                max: 100,
-                                divisions: 100,
-                                onChanged: (v) => setState(() => volume = v),
-                                onChangeEnd: (v) {
-                                  if (playing) {
-                                    final scalar = v / 100;
-                                    VolumeController().setVolume(scalar);
-                                    audioPlayer.setVolume(scalar);
-                                  }
-                                },
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          SizedBox(
-                            width: 48,
-                            child: TextField(
-                              controller: TextEditingController(
-                                  text: volume.toInt().toString())
-                                ..selection = TextSelection.collapsed(
-                                  offset: volume.toInt().toString().length,
-                                ),
-                              keyboardType: TextInputType.number,
-                              textAlign: TextAlign.right,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                              ),
-                              decoration: const InputDecoration(
-                                isDense: true,
-                                border: InputBorder.none,
-                                contentPadding: EdgeInsets.symmetric(
-                                    vertical: 4, horizontal: 0),
-                              ),
-                              onSubmitted: (value) {
-                                final parsed = int.tryParse(value);
-                                if (parsed != null) {
-                                  setState(() {
-                                    volume = parsed.clamp(0, 100).toDouble();
-                                  });
-                                  if (playing) {
-                                    final scalar = volume / 100;
-                                    VolumeController().setVolume(scalar);
-                                    audioPlayer.setVolume(scalar);
-                                  }
-                                }
-                              },
-                            ),
-                          )
-                        ],
-                      ),
-                    ),
-
-// --- Loop Audio ---
-                    Container(
-                      margin: const EdgeInsets.symmetric(vertical: 2),
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 4, horizontal: 16),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.repeat, size: 20),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              context.translate('loop_audio'),
-                              style: const TextStyle(
-                                  fontSize: 16, fontWeight: FontWeight.w600),
-                            ),
-                          ),
-                          Switch(
-                            value: loopAudio,
-                            onChanged: (value) =>
-                                setState(() => loopAudio = value),
-                            activeThumbColor: ThemeColors.primary,
-                          ),
-                        ],
-                      ),
-                    ),
-
-// --- Vibrate ---
-                    Container(
-                      margin: const EdgeInsets.symmetric(vertical: 2),
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 4, horizontal: 16),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.vibration, size: 20),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              context.translate('vibrate'),
-                              style: const TextStyle(
-                                  fontSize: 16, fontWeight: FontWeight.w600),
-                            ),
-                          ),
-                          Switch(
-                            value: vibrate,
-                            onChanged: (value) =>
-                                setState(() => vibrate = value),
-                            activeThumbColor: ThemeColors.primary,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ]
-                ],
-              ),
-            ),
-            if (!creating)
-              Positioned(
-                left: 16,
-                bottom: 16,
-                child: TextButton(
-                  onPressed: deleteAlarm,
+    return SafeArea(
+        child: Scaffold(
+            appBar: AppBar(
+              actions: [
+                // Bouton Annuler avec icône
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
                   style: TextButton.styleFrom(
-                    foregroundColor: ThemeColors.error,
+                    foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     textStyle: TextStyle(fontSize: 16),
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.delete,
-                          size: 18,
-                          color: ThemeColors.error), // Icône "Supprimer"
+                      Icon(Icons.close,
+                          size: 18, color: Colors.white), // Icône "Fermer"
                       SizedBox(width: 8),
-                      Text(context.translate('delete_alarm')),
+                      Text(context.translate('cancel')),
                     ],
                   ),
                 ),
-              ),
+              ],
+            ),
+            body: Stack(
+              children: [
+                Padding(
+                  padding: EdgeInsets.fromLTRB(16, 8, 16, creating ? 16 : 90),
+                  child: ListView(
+                    controller: _scrollController,
+                    children: [
+                      // Heure sélectionnée
+                      buildTimeSelector(),
+                      const SizedBox(height: 8),
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          const spacing = 3.0;
+                          final itemWidth =
+                              (constraints.maxWidth - spacing * 6) / 7;
 
-            // Bouton Sauvegarder en bas à droite
-            Positioned(
-              right: 16,
-              bottom: 16,
-              child: OutlinedButton(
-                onPressed: loading ? null : saveAlarm,
-                style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: ThemeColors.primary, width: 2),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
-                ),
-                child: loading
-                    ? SizedBox(
-                        height: 16,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                              ThemeColors.primary),
-                        ),
-                      )
-                    : Row(
-                        children: [
-                          Icon(Icons.save,
-                              size: 18,
-                              color:
-                                  ThemeColors.primary), // Icône "Enregistrer"
-                          SizedBox(width: 8),
-                          Text(
-                            context.translate('save'),
-                            style: const TextStyle(
-                              color: ThemeColors.primary,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
+                          return Wrap(
+                            spacing: spacing,
+                            runSpacing: 0,
+                            children: List.generate(7, (index) {
+                              final day = context.translate('day_${index + 1}');
+
+                              return SizedBox(
+                                width: itemWidth,
+                                child: ChoiceChip(
+                                  label: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(day, maxLines: 1),
+                                  ),
+                                  showCheckmark: false,
+                                  selected: selectedDays[index],
+                                  onSelected: (selected) {
+                                    setState(
+                                        () => selectedDays[index] = selected);
+                                  },
+                                  selectedColor: ThemeColors.primary,
+                                  backgroundColor: Colors.white,
+                                  materialTapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                  labelPadding:
+                                      const EdgeInsets.symmetric(horizontal: 6),
+                                  visualDensity: const VisualDensity(
+                                      horizontal: -2, vertical: -2),
+                                ),
+                              );
+                            }),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 8),
+
+                      // Récurrence toutes les X semaines
+                      Container(
+                          padding: const EdgeInsets.only(left: 8),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(context.translate(
+                                  recurrenceWeeks == 1
+                                      ? 'repeat_every_week'
+                                      : 'x_weeks',
+                                  translationParams: {
+                                    "weeks": recurrenceWeeks.toString()
+                                  })),
+                              Expanded(
+                                child: Slider(
+                                  min: 1,
+                                  max: 4,
+                                  divisions: 3,
+                                  value: recurrenceWeeks.toDouble(),
+                                  onChanged: (value) {
+                                    setState(() {
+                                      recurrenceWeeks = value.toInt();
+                                    });
+                                  },
+                                ),
+                              ),
+                            ],
+                          )),
+                      Container(
+                        padding: const EdgeInsets.only(left: 16),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              context.translate('alarm_createdFor'),
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
+                            TextButton(
+                              onPressed: _selectCreatedFor,
+                              child: Text(
+                                createdFor.formatDateDay(),
+                                style: const TextStyle(
+                                  color: ThemeColors.primary,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          setState(() {
+                            showMoreOptions = !showMoreOptions;
+                          });
+                          if (!showMoreOptions) return;
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            _scrollController.animateTo(
+                              _scrollController.position.maxScrollExtent,
+                              duration: const Duration(milliseconds: 500),
+                              curve: Curves.easeOut,
+                            );
+                          });
+                        },
+                        child: Text(showMoreOptions
+                            ? context.translate('show_less')
+                            : context.translate('show_more')),
+                      ),
+
+                      if (showMoreOptions) ...[
+                        const SizedBox(height: 16),
+                        // --- Alarm Title ---
+                        Container(
+                          margin: const EdgeInsets.symmetric(vertical: 2),
+                          padding: const EdgeInsets.only(
+                              top: 4, bottom: 4, left: 16, right: 18),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(8),
                           ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.label, size: 20),
+                              const SizedBox(width: 8),
+                              Text(
+                                context.translate('alarm_title'),
+                                style: const TextStyle(
+                                    fontSize: 16, fontWeight: FontWeight.w600),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: TextField(
+                                  controller: _titleController,
+                                  textAlign: TextAlign.right,
+                                  decoration: InputDecoration(
+                                    isDense: true,
+                                    border: InputBorder.none,
+                                    enabledBorder: InputBorder.none,
+                                    focusedBorder: InputBorder.none,
+                                    contentPadding: const EdgeInsets.symmetric(
+                                        vertical: 8, horizontal: 0),
+                                    hintText: context
+                                        .translate('alarm_title_placeholder'),
+                                    hintStyle: const TextStyle(
+                                        fontSize: 14, color: Colors.grey),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+// --- Select Audio ---
+                        Container(
+                          margin: const EdgeInsets.symmetric(vertical: 2),
+                          padding: const EdgeInsets.only(
+                              top: 4, bottom: 4, left: 16, right: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.music_note, size: 20),
+                              const SizedBox(width: 8),
+                              Text(
+                                context.translate('select_audio'),
+                                style: const TextStyle(
+                                    fontSize: 16, fontWeight: FontWeight.w600),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: DropdownButtonHideUnderline(
+                                  child: DropdownButton<String>(
+                                    value: assetAudio,
+                                    isExpanded: true,
+                                    alignment: Alignment.centerRight,
+                                    icon: const Icon(Icons.arrow_drop_down),
+                                    dropdownColor: Colors.white,
+                                    focusColor: Colors.white,
+                                    onChanged: (String? newValue) {
+                                      setState(() {
+                                        playing = false;
+                                        assetAudio = newValue!;
+                                      });
+                                    },
+                                    items: audioOptions
+                                        .map<DropdownMenuItem<String>>(
+                                            (String value) {
+                                      final label = value
+                                          .split('/')
+                                          .last
+                                          .replaceAll('.mp3', '')
+                                          .replaceAll('_', ' ')
+                                          .replaceFirstMapped(
+                                            RegExp(r'^[a-zA-Z]'),
+                                            (m) => m.group(0)!.toUpperCase(),
+                                          );
+                                      return DropdownMenuItem<String>(
+                                        value: value,
+                                        child: Text(
+                                          label,
+                                          style: const TextStyle(fontSize: 15),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      );
+                                    }).toList(),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              IconButton(
+                                onPressed: playAudio,
+                                icon: Icon(
+                                    playing ? Icons.pause : Icons.play_arrow),
+                                color: playing
+                                    ? ThemeColors.secondary
+                                    : ThemeColors.primary,
+                                iconSize: 24,
+                                splashRadius: 22,
+                              ),
+                            ],
+                          ),
+                        ),
+
+// --- Volume ---
+                        Container(
+                          margin: const EdgeInsets.symmetric(vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 4, horizontal: 16),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.volume_up, size: 20),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  context.translate('volume'),
+                                  style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                flex: 3,
+                                child: SliderTheme(
+                                  data: SliderTheme.of(context).copyWith(
+                                    trackHeight: 3,
+                                    thumbShape: const RoundSliderThumbShape(
+                                        enabledThumbRadius: 8),
+                                  ),
+                                  child: Slider(
+                                    value: volume,
+                                    min: 0,
+                                    max: 100,
+                                    divisions: 100,
+                                    onChanged: (v) =>
+                                        setState(() => volume = v),
+                                    onChangeEnd: (v) {
+                                      if (playing) {
+                                        final scalar = v / 100;
+                                        VolumeController().setVolume(scalar);
+                                        audioPlayer.setVolume(scalar);
+                                      }
+                                    },
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              SizedBox(
+                                width: 48,
+                                child: TextField(
+                                  controller: TextEditingController(
+                                      text: volume.toInt().toString())
+                                    ..selection = TextSelection.collapsed(
+                                      offset: volume.toInt().toString().length,
+                                    ),
+                                  keyboardType: TextInputType.number,
+                                  textAlign: TextAlign.right,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  decoration: const InputDecoration(
+                                    isDense: true,
+                                    border: InputBorder.none,
+                                    contentPadding: EdgeInsets.symmetric(
+                                        vertical: 4, horizontal: 0),
+                                  ),
+                                  onSubmitted: (value) {
+                                    final parsed = int.tryParse(value);
+                                    if (parsed != null) {
+                                      setState(() {
+                                        volume =
+                                            parsed.clamp(0, 100).toDouble();
+                                      });
+                                      if (playing) {
+                                        final scalar = volume / 100;
+                                        VolumeController().setVolume(scalar);
+                                        audioPlayer.setVolume(scalar);
+                                      }
+                                    }
+                                  },
+                                ),
+                              )
+                            ],
+                          ),
+                        ),
+
+// --- Loop Audio ---
+                        Container(
+                          margin: const EdgeInsets.symmetric(vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 4, horizontal: 16),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.repeat, size: 20),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  context.translate('loop_audio'),
+                                  style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600),
+                                ),
+                              ),
+                              Switch(
+                                value: loopAudio,
+                                onChanged: (value) =>
+                                    setState(() => loopAudio = value),
+                                activeThumbColor: ThemeColors.primary,
+                              ),
+                            ],
+                          ),
+                        ),
+
+// --- Vibrate ---
+                        Container(
+                          margin: const EdgeInsets.symmetric(vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 4, horizontal: 16),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.vibration, size: 20),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  context.translate('vibrate'),
+                                  style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600),
+                                ),
+                              ),
+                              Switch(
+                                value: vibrate,
+                                onChanged: (value) =>
+                                    setState(() => vibrate = value),
+                                activeThumbColor: ThemeColors.primary,
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        const SizedBox(height: 32),
+                      ]
+                    ],
+                  ),
+                ),
+                if (!creating)
+                  Positioned(
+                    left: 16,
+                    bottom: 16,
+                    child: TextButton(
+                      onPressed: deleteAlarm,
+                      style: TextButton.styleFrom(
+                        foregroundColor: ThemeColors.error,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        textStyle: TextStyle(fontSize: 16),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.delete,
+                              size: 18,
+                              color: ThemeColors.error), // Icône "Supprimer"
+                          SizedBox(width: 8),
+                          Text(context.translate('delete_alarm')),
                         ],
                       ),
-              ),
-            ),
-          ],
-        ));
+                    ),
+                  ),
+
+                // Bouton Sauvegarder en bas à droite
+                Positioned(
+                  right: 16,
+                  bottom: 16,
+                  child: OutlinedButton(
+                    onPressed: loading ? null : saveAlarm,
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(
+                          color: ThemeColors.primary, width: 2),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 12, horizontal: 24),
+                    ),
+                    child: loading
+                        ? SizedBox(
+                            height: 16,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                  ThemeColors.primary),
+                            ),
+                          )
+                        : Row(
+                            children: [
+                              Icon(Icons.save,
+                                  size: 18,
+                                  color: ThemeColors
+                                      .primary), // Icône "Enregistrer"
+                              SizedBox(width: 8),
+                              Text(
+                                context.translate('save'),
+                                style: const TextStyle(
+                                  color: ThemeColors.primary,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                  ),
+                ),
+              ],
+            )));
   }
 }
