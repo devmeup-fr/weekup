@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:my_alarms/theme/colors.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -45,15 +44,10 @@ void main() async {
 }
 
 void setSystemUIMode() {
-  SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-
-  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-    statusBarColor: Colors.transparent,
-    statusBarIconBrightness: Brightness.dark,
-    systemNavigationBarColor: ThemeColors.primary,
-    systemNavigationBarDividerColor: ThemeColors.primary,
-    systemNavigationBarIconBrightness: Brightness.light,
-  ));
+  SystemChrome.setEnabledSystemUIMode(
+    SystemUiMode.manual,
+    overlays: [SystemUiOverlay.top, SystemUiOverlay.bottom],
+  );
 }
 
 Future<void> requestPermissions() async {
