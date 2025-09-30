@@ -1,7 +1,14 @@
 {
     "common": {
         "appTitle": "Mes Alarmes",
-        "date": "Date"
+        "date": "Date",
+        "day": "jour",
+        "days": "jours",
+        "hour": "heure",
+        "hours": "heures",
+        "minute": "minute",
+        "minutes": "minutes",
+        "and": "et"
     },
     "requesting_notification_permission": "Demande d'autorisation de notification...",
     "notification_permission_granted": "Autorisation de notification accordée.",
@@ -29,9 +36,10 @@
     "loop_audio": "Boucler l'audio",
     "vibrate": "Vibrer",
     "volume": "Volume",
-    "alarm_title": "Titre",
+    "alarm_title": "Nom de l'alarme",
+    "alarm_title_placeholder": "Alarme",
     "alarm_createdFor": "A partir du : ",
-    "select_audio": "Sélectionner la musique",
+    "select_audio": "Son",
     "alarm_notification_title": "Votre Alarme",
     "alarm_notification_body": "Votre alarme sonne.",
     "stop_alarm_button": "Arrêter l'alarme",
@@ -46,5 +54,6 @@
     "edit_alarm": "Édition de l'alarme",
     "delete_alarm": "Supprimer l'alarme",
     "snooze_alarm": "Votre alarme sonnera à nouveau dans 5 minutes.",
-    "nextDateTitle": "Prochaine alarme"
+    "nextDateTitle": "Prochaine alarme",
+    "nextDateToast": "Prochaine alarme prévue dans"
 }

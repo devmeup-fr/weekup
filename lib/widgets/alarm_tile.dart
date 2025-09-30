@@ -25,26 +25,39 @@ class AlarmTile extends StatelessWidget {
     return Dismissible(
       key: key!,
       direction: onDismissed != null
-          ? DismissDirection.endToStart
+          ? DismissDirection.horizontal
           : DismissDirection.none,
+      dismissThresholds: const {
+        DismissDirection.startToEnd: 0.25,
+        DismissDirection.endToStart: 0.25,
+      },
       background: Container(
-        color: ThemeColors.error,
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 30),
-        child: const Icon(
-          Icons.delete,
-          size: 30,
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: ThemeColors.error,
+          borderRadius: BorderRadius.circular(12),
         ),
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        alignment: Alignment.centerLeft,
+        child: const Icon(Icons.delete, size: 30, color: Colors.white),
+      ),
+      secondaryBackground: Container(
+        decoration: BoxDecoration(
+          color: ThemeColors.error,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        alignment: Alignment.centerRight,
+        child: const Icon(Icons.delete, size: 30, color: Colors.white),
       ),
       onDismissed: (_) => onDismissed?.call(),
       child: GestureDetector(
         onTap: onPressed,
         child: Card(
-            color: Colors.transparent,
-            elevation: 0,
+            color:
+                alarm.isActive ? ThemeColors.primaryLight : Colors.transparent,
+            margin: EdgeInsets.zero,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -92,7 +105,7 @@ class AlarmTile extends StatelessWidget {
                         onChanged: (value) {
                           onToggleActive(value);
                         },
-                        activeColor: Colors.white,
+                        activeThumbColor: Colors.white,
                         inactiveTrackColor: Colors.grey,
                       ),
                       const Icon(
@@ -120,7 +133,7 @@ class AlarmTile extends StatelessWidget {
                                         color: Colors.grey,
                                       ),
                                     )
-                                  : Container(),
+                                  : const SizedBox(height: 14),
                               if (!alarm.isAllDaysFalse())
                                 Padding(
                                     padding: EdgeInsets.only(right: 8),
@@ -150,7 +163,7 @@ class AlarmTile extends StatelessWidget {
                                       }),
                                     ))
                             ]),
-                        if (!alarm.isAllDaysFalse()) const SizedBox(height: 4),
+                        const SizedBox(height: 4),
                         if (!alarm.isAllDaysFalse())
                           Row(
                               mainAxisAlignment: MainAxisAlignment.end,
@@ -174,6 +187,8 @@ class AlarmTile extends StatelessWidget {
                                   ),
                                 )
                               ])
+                        else
+                          const SizedBox(height: 4),
                       ],
                     ),
                   ),

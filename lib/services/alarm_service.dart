@@ -7,6 +7,7 @@ import 'package:alarm/service/alarm_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:my_alarms/core/utils/localization_util.dart';
 import 'package:my_alarms/models/alarm_model.dart';
+import 'package:my_alarms/theme/colors.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AlarmService {
@@ -35,6 +36,9 @@ class AlarmService {
     if (context.mounted) {
       await setNextAlarm(context);
     }
+    if (context.mounted) {
+      toastNextOccurrence(context, alarm);
+    }
   }
 
   // Edit Alarm object in SharedPreferences
@@ -58,6 +62,9 @@ class AlarmService {
 
     if (context.mounted) {
       await setNextAlarm(context);
+    }
+    if (context.mounted) {
+      toastNextOccurrence(context, alarm);
     }
   }
 
@@ -135,7 +142,8 @@ class AlarmService {
           loopAudio: nextAlarm.loopAudio,
           vibrate: nextAlarm.vibrate,
           volume: nextAlarm.volume,
-          fadeDuration: 3.0,
+          volumeEnforced: true,
+          fadeDuration: 10.0,
           androidFullScreenIntent: true,
           warningNotificationOnKill: Platform.isIOS,
           assetAudioPath: "assets/musics/${nextAlarm.assetAudio}",
@@ -149,6 +157,58 @@ class AlarmService {
         );
         Alarm.set(alarmSettings: alarmSettings);
       }
+    }
+  }
+
+  void toastNextOccurrence(BuildContext context, AlarmModel alarm) {
+    DateTime? nextOccurrence = alarm.getNextOccurrence();
+    if (alarm.isActive && nextOccurrence != null) {
+      final now = DateTime.now();
+      final diff = nextOccurrence.difference(now);
+
+      if (diff.inSeconds <= 0 || diff.inSeconds < 60) {
+        return;
+      }
+
+      final days = diff.inDays;
+      final hours = diff.inHours % 24;
+      final mins = diff.inMinutes % 60;
+
+      final parts = <String>[];
+      if (days > 0) {
+        parts.add(
+            "$days ${days > 1 ? context.translate('common.days') : context.translate('common.day')}");
+      }
+      if (hours > 0) {
+        parts.add(
+            "$hours ${hours > 1 ? context.translate('common.hours') : context.translate('common.hour')}");
+      }
+      if (mins > 0) {
+        parts.add(
+            "$mins ${mins > 1 ? context.translate('common.minutes') : context.translate('common.minute')}");
+      }
+
+      String durationText;
+      if (parts.length > 1) {
+        durationText =
+            "${parts.sublist(0, parts.length - 1).join(' ')} ${context.translate('common.and')} ${parts.last}";
+      } else {
+        durationText = parts.isNotEmpty ? parts.first : "";
+      }
+
+      final message = "${context.translate('nextDateToast')} $durationText";
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            message,
+            style: const TextStyle(color: Colors.white),
+          ),
+          backgroundColor: ThemeColors.primary,
+          duration: const Duration(seconds: 3),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     }
   }
 }
