@@ -346,7 +346,7 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
             body: Stack(
               children: [
                 Padding(
-                  padding: EdgeInsets.fromLTRB(16, 8, 16, creating ? 16 : 90),
+                  padding: EdgeInsets.fromLTRB(16, 8, 16, 90),
                   child: ListView(
                     controller: _scrollController,
                     children: [
@@ -732,9 +732,8 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
                             ],
                           ),
                         ),
-
                         const SizedBox(height: 32),
-                      ]
+                      ],
                     ],
                   ),
                 ),
