@@ -7,8 +7,8 @@ import 'package:my_alarms/core/utils/localization_util.dart';
 import 'package:my_alarms/models/alarm_model.dart';
 import 'package:my_alarms/services/alarm_service.dart';
 import 'package:my_alarms/theme/colors.dart';
+import 'package:my_alarms/widgets/devmeup_widget.dart';
 import 'package:my_alarms/widgets/next_alarm_set.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../services/alarm_permissions_service.dart';
 import '../widgets/alarm_tile.dart';
@@ -89,15 +89,6 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  // Function to open the URL
-  void _launchURL(String url) async {
-    if (await canLaunchUrl(Uri.https(url))) {
-      await launchUrl(Uri.https(url), mode: LaunchMode.externalApplication);
-    } else {
-      throw 'Could not launch $url';
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
@@ -167,20 +158,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ?.copyWith(color: Colors.grey),
                   ),
                 )),
-              GestureDetector(
-                onTap: () => _launchURL('devmeup.fr'),
-                child: Padding(
-                  padding: const EdgeInsets.all(10),
-                  child: Text(
-                    'DevMeUp',
-                    style: TextStyle(
-                      color: Colors.grey,
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
+              DevMeUpWidget()
             ],
           )),
           floatingActionButton: Padding(
