@@ -44,17 +44,29 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> loadAlarms() async {
     final loadedAlarms = await alarmService.getAlarms();
     setState(() {
-      alarms = loadedAlarms;
+      alarms = loadedAlarms.reversed.toList();
     });
   }
 
   Future<void> navigateToRingScreen(AlarmSettings alarmSettings) async {
+    // Log console pour debug
+    debugPrint(
+      '[ALARM] 🚨 Alarm rang -> id=${alarmSettings.id}, '
+      'title=${alarmSettings.notificationSettings.title}, '
+      'dateTime=${alarmSettings.dateTime}',
+    );
+
+    // 👉 si tu veux stocker en historique
+    await alarmService.saveAlarmLog(alarmSettings);
+
     await Navigator.push(
       context,
-      MaterialPageRoute<void>(builder: (context) {
-        return AlarmRingScreen(
-            alarmSettings: alarmSettings, loadAlarms: loadAlarms);
-      }),
+      MaterialPageRoute<void>(
+        builder: (context) => AlarmRingScreen(
+          alarmSettings: alarmSettings,
+          loadAlarms: loadAlarms,
+        ),
+      ),
     );
 
     unawaited(loadAlarms());
@@ -110,6 +122,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: ListView.builder(
                   itemCount: alarms.length,
                   itemBuilder: (context, index) {
+                    final alarm = alarms[index];
                     return Card(
                       color: Colors.white.withValues(alpha: 0.13),
                       margin: const EdgeInsets.symmetric(
@@ -118,15 +131,16 @@ class _HomeScreenState extends State<HomeScreen> {
                           borderRadius: BorderRadius.circular(12)),
                       elevation: 4,
                       child: AlarmTile(
-                          key: Key(alarms[index].id.toString()),
-                          alarm: alarms[index],
-                          onPressed: () => navigateToAlarmScreen(alarms[index],
-                              index: index),
+                          key: Key(alarm.id.toString()),
+                          alarm: alarm,
+                          onPressed: () =>
+                              navigateToAlarmScreen(alarm, index: index),
                           onDismissed: () async {
                             final removedAlarm = alarms.removeAt(index);
                             setState(() {});
                             await alarmService
-                                .deleteAlarm(context, index)
+                                .deleteAlarmById(context, removedAlarm.id!,
+                                    reschedule: true)
                                 .then((_) => loadAlarms())
                                 .catchError((error) {
                               // Réinsère l'élément si une erreur survient
@@ -137,11 +151,11 @@ class _HomeScreenState extends State<HomeScreen> {
                           },
                           onToggleActive: (value) async {
                             setState(() {
-                              alarms[index].isActive = value;
-                              alarms[index].createdAt = DateTime.now();
+                              alarm.isActive = value;
+                              alarm.createdAt = DateTime.now();
                             });
                             await alarmService
-                                .editAlarm(context, alarms[index], index)
+                                .editAlarmById(context, alarm)
                                 .then((_) => loadAlarms());
                           }),
                     );

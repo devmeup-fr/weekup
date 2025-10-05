@@ -4,8 +4,10 @@ enum SecureStorageKeys {
   lastUserToken,
   useBiometrics,
   localeLanguageCode,
-  localeCountryCode;
+  localeCountryCode,
+  alarmLogs;
 }
+
 enum PrefStorageKeys {
   authUser,
   lastUserConnected,

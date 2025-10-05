@@ -132,7 +132,7 @@ class AlarmTile extends StatelessWidget {
                                       ),
                                     )
                                   : const SizedBox(height: 14),
-                              if (!alarm.isAllDaysFalse())
+                              if (!alarm.isOneShot)
                                 Padding(
                                     padding: EdgeInsets.only(right: 8),
                                     child: Row(
@@ -162,7 +162,7 @@ class AlarmTile extends StatelessWidget {
                                     ))
                             ]),
                         const SizedBox(height: 4),
-                        if (!alarm.isAllDaysFalse())
+                        if (!alarm.isOneShot)
                           Row(
                               mainAxisAlignment: MainAxisAlignment.end,
                               children: [

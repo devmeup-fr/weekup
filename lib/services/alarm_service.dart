@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:alarm/alarm.dart';
 import 'package:alarm/service/alarm_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:my_alarms/core/enums/storage_keys_enum.dart';
 import 'package:my_alarms/core/utils/localization_util.dart';
 import 'package:my_alarms/models/alarm_model.dart';
 import 'package:my_alarms/theme/colors.dart';
@@ -13,99 +14,128 @@ import 'package:shared_preferences/shared_preferences.dart';
 class AlarmService {
   static const String alarmKey = 'alarm_data';
 
-  // Retrieve Alarm objects from SharedPreferences
+  // ---------------------------------------------------
+  // Récupération / Persistance
+  // ---------------------------------------------------
   Future<List<AlarmModel>> getAlarms() async {
     final prefs = await SharedPreferences.getInstance();
     final alarmList = prefs.getStringList(alarmKey) ?? [];
-
-    return alarmList
-        .map((alarmData) => AlarmModel.fromMap(json.decode(alarmData)))
-        .toList();
+    return alarmList.map((s) => AlarmModel.fromMap(json.decode(s))).toList();
   }
 
-  // Save Alarm object to SharedPreferences
-  Future<void> saveAlarm(BuildContext context, AlarmModel alarm) async {
-    final prefs = await SharedPreferences.getInstance();
-    final alarmList = prefs.getStringList(alarmKey) ?? [];
-
-    // Convert Alarm to Map and store it
-    final alarmMap = json.encode(alarm.toMap());
-    alarmList.add(alarmMap);
-    await prefs.setStringList(alarmKey, alarmList);
-
-    if (context.mounted) {
-      await setNextAlarm(context);
-    }
-    if (context.mounted) {
-      toastNextOccurrence(context, alarm);
-    }
+  Future<void> _persistAll(
+      SharedPreferences prefs, List<AlarmModel> alarms) async {
+    final list = alarms.map((a) => json.encode(a.toMap())).toList();
+    await prefs.setStringList(alarmKey, list);
   }
 
-  // Edit Alarm object in SharedPreferences
-  Future<void> editAlarm(
-      BuildContext context, AlarmModel alarm, int index) async {
-    final prefs = await SharedPreferences.getInstance();
-    final alarmList = prefs.getStringList(alarmKey) ?? [];
-
-    // Ensure the index is within bounds
-    if (index >= 0 && index < alarmList.length) {
-      // Convert Alarm to Map and replace the alarm at the specified index
-      final alarmMap = json.encode(alarm.toMap());
-      alarmList[index] = alarmMap; // Replace the alarm at the specified index
-    } else {
-      throw RangeError(
-          'Index $index out of bounds for alarm list of length ${alarmList.length}');
-    }
-
-    // Save the updated alarm list back to SharedPreferences
-    await prefs.setStringList(alarmKey, alarmList);
-
-    if (context.mounted) {
-      await setNextAlarm(context);
-    }
-    if (context.mounted) {
-      toastNextOccurrence(context, alarm);
-    }
+  Future<int> _nextId() async {
+    final alarms = await getAlarms();
+    final maxId =
+        alarms.fold<int>(0, (m, a) => a.id != null && a.id! > m ? a.id! : m);
+    return maxId + 1;
   }
 
-  // Delete Alarm from SharedPreferences by index
-  Future<void> deleteAlarm(BuildContext context, int index) async {
-    final prefs = await SharedPreferences.getInstance();
-    final alarmList = prefs.getStringList(alarmKey) ?? [];
-
-    if (index < alarmList.length) {
-      alarmList.removeAt(index);
-      await prefs.setStringList(alarmKey, alarmList);
-    }
-    if (context.mounted) {
+  Future<void> _maybeReschedule(BuildContext context,
+      {required bool reschedule}) async {
+    if (reschedule && context.mounted) {
       await setNextAlarm(context);
     }
   }
 
+  // ---------------------------------------------------
+  // CREATE
+  // ---------------------------------------------------
+  Future<void> saveAlarm(
+    BuildContext context,
+    AlarmModel alarm, {
+    bool reschedule = true,
+    bool showToast = true,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    final alarms = await getAlarms();
+
+    alarm.id ??= await _nextId();
+    alarms.add(alarm);
+
+    await _persistAll(prefs, alarms);
+
+    await _maybeReschedule(context, reschedule: reschedule);
+    if (showToast && context.mounted) toastNextOccurrence(context, alarm);
+  }
+
+  // ---------------------------------------------------
+  // UPDATE (by id)
+  // ---------------------------------------------------
+  Future<void> editAlarmById(
+    BuildContext context,
+    AlarmModel alarm, {
+    bool reschedule = true,
+    bool showToast = true,
+  }) async {
+    if (alarm.id == null) {
+      throw ArgumentError('editAlarmById: alarm.id est null');
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    final alarms = await getAlarms();
+
+    final idx = alarms.indexWhere((a) => a.id == alarm.id);
+    if (idx < 0) throw StateError('Aucune alarme avec id=${alarm.id}');
+
+    alarms[idx] = alarm;
+    await _persistAll(prefs, alarms);
+
+    await _maybeReschedule(context, reschedule: reschedule);
+    if (showToast && context.mounted) toastNextOccurrence(context, alarm);
+  }
+
+  // ---------------------------------------------------
+  // DELETE (by id)
+  // ---------------------------------------------------
+  Future<void> deleteAlarmById(
+    BuildContext context,
+    int id, {
+    bool reschedule = true,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    final alarms = await getAlarms();
+    final newAlarms = alarms.where((a) => a.id != id).toList();
+
+    await _persistAll(prefs, newAlarms);
+    await _maybeReschedule(context, reschedule: reschedule);
+  }
+
+  // ---------------------------------------------------
+  // FIND NEXT
+  // ---------------------------------------------------
   Future<AlarmModel?> findNextAlarm(BuildContext context) async {
     final prefs = await SharedPreferences.getInstance();
     final alarmList = prefs.getStringList(alarmKey) ?? [];
+    if (alarmList.isEmpty) return null;
 
-    if (alarmList.isEmpty) {
-      // No alarms set, do nothing
-      return null;
-    }
-
-    // find next alarm in the list
     AlarmModel? nextAlarm;
 
     for (var i = 0; i < alarmList.length; i++) {
       var currentAlarm = AlarmModel.fromMap(json.decode(alarmList[i]));
+      final currentAlarmDate = currentAlarm.getNextOccurrence();
 
-      DateTime? currentAlarmDate = currentAlarm.getNextOccurrence();
-      debugPrint(currentAlarmDate.toString());
+      // One-shot expirée → désactiver SANS replanif
+      final weeklyMatrix = currentAlarm.selectedDays.length == 7;
+      final isOneShot =
+          weeklyMatrix && currentAlarm.selectedDays.every((d) => !d);
 
       if (currentAlarmDate != null &&
-          currentAlarm.selectedDays.every((day) => !day) &&
+          isOneShot &&
           currentAlarmDate.difference(currentAlarm.getDateFor()).inDays > 0) {
         currentAlarm.isActive = false;
         if (context.mounted) {
-          await editAlarm(context, currentAlarm, i);
+          await editAlarmById(
+            context,
+            currentAlarm,
+            reschedule: false,
+            showToast: false,
+          );
         }
         continue;
       }
@@ -117,58 +147,77 @@ class AlarmService {
         nextAlarm = currentAlarm;
       }
     }
+
     return nextAlarm;
   }
 
+  // ---------------------------------------------------
+  // SET NEXT
+  // ---------------------------------------------------
   Future<void> setNextAlarm(BuildContext context) async {
-    List<AlarmSettings> alarms = await AlarmStorage.getSavedAlarms();
-    for (var alarm in alarms) {
-      await Alarm.stop(alarm.id);
-      await AlarmStorage.unsaveAlarm(alarm.id);
+    final saved = await AlarmStorage.getSavedAlarms();
+
+    for (final a in saved) {
+      final isRinging = await Alarm.isRinging(a.id);
+      if (!isRinging) {
+        await Alarm.stop(a.id);
+        await AlarmStorage.unsaveAlarm(a.id);
+      }
     }
 
     if (context.mounted) {
-      AlarmModel? nextAlarm = await findNextAlarm(context);
-      if (nextAlarm == null) {
-        // No alarms set, do nothing
-        return;
-      }
+      final nextAlarm = await findNextAlarm(context);
+      if (nextAlarm == null) return;
 
-      if (context.mounted) {
-        // Convert AlarmMap to AlarmModel and set it as the next alarm
-        AlarmSettings alarmSettings = AlarmSettings(
-          id: nextAlarm.id != null ? (nextAlarm.id! + 1) : 1,
-          dateTime: nextAlarm.getNextOccurrence()!,
-          loopAudio: nextAlarm.loopAudio,
-          vibrate: nextAlarm.vibrate,
-          volume: nextAlarm.volume,
-          volumeEnforced: true,
-          fadeDuration: 10.0,
-          androidFullScreenIntent: true,
-          warningNotificationOnKill: Platform.isIOS,
-          assetAudioPath: "assets/musics/${nextAlarm.assetAudio}",
-          notificationSettings: NotificationSettings(
-            title: nextAlarm.title ??
-                context.translate('alarm_notification_title'),
-            body: context.translate('alarm_notification_body'),
-            stopButton: context.translate('stop_alarm_button'),
-            icon: 'notification_icon',
-          ),
-        );
-        Alarm.set(alarmSettings: alarmSettings);
-      }
+      final settings = AlarmSettings(
+        id: nextAlarm.id != null ? (nextAlarm.id! + 1) : 1,
+        dateTime: nextAlarm.getNextOccurrence()!,
+        loopAudio: nextAlarm.loopAudio,
+        vibrate: nextAlarm.vibrate,
+        volume: nextAlarm.volume,
+        volumeEnforced: true,
+        fadeDuration: 10.0,
+        androidFullScreenIntent: true,
+        warningNotificationOnKill: Platform.isIOS,
+        assetAudioPath: "assets/musics/${nextAlarm.assetAudio}",
+        notificationSettings: NotificationSettings(
+          title:
+              nextAlarm.title ?? context.translate('alarm_notification_title'),
+          body: context.translate('alarm_notification_body'),
+          stopButton: context.translate('stop_alarm_button'),
+          icon: 'notification_icon',
+        ),
+      );
+
+      await Alarm.set(alarmSettings: settings);
     }
   }
 
+  Future<void> saveAlarmLog(AlarmSettings alarmSettings) async {
+    final prefs = await SharedPreferences.getInstance();
+    final logs = prefs.getStringList(SecureStorageKeys.alarmLogs.name) ?? [];
+
+    final logEntry = jsonEncode({
+      'id': alarmSettings.id,
+      'title': alarmSettings.notificationSettings.title,
+      'firedAt': DateTime.now().toIso8601String(),
+      'scheduledFor': alarmSettings.dateTime.toIso8601String(),
+    });
+
+    logs.add(logEntry);
+    await prefs.setStringList(SecureStorageKeys.alarmLogs.name, logs);
+  }
+
+  // ---------------------------------------------------
+  // Toast
+  // ---------------------------------------------------
   void toastNextOccurrence(BuildContext context, AlarmModel alarm) {
-    DateTime? nextOccurrence = alarm.getNextOccurrence();
+    final nextOccurrence = alarm.getNextOccurrence();
     if (alarm.isActive && nextOccurrence != null) {
       final now = DateTime.now();
       final diff = nextOccurrence.difference(now);
 
-      if (diff.inSeconds <= 0 || diff.inSeconds < 60) {
-        return;
-      }
+      if (diff.inSeconds <= 0 || diff.inSeconds < 60) return;
 
       final days = diff.inDays;
       final hours = diff.inHours % 24;

@@ -168,7 +168,7 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
   Future<void> saveAlarm() async {
     if (loading) return;
     AlarmModel alarmModel = AlarmModel(
-        id: widget.index ?? 0,
+        id: widget.alarm?.id,
         title: _titleController.text != '' ? _titleController.text : null,
         time: selectedDateTime,
         vibrate: vibrate,
@@ -178,8 +178,8 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
         recurrenceWeeks: recurrenceWeeks,
         createdFor: createdFor);
 
+    setState(() => loading = true);
     if (creating) {
-      setState(() => loading = true);
       await alarmService.saveAlarm(context, alarmModel).then((res) {
         if (mounted) {
           Navigator.pop(context, true);
@@ -187,9 +187,7 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
         setState(() => loading = false);
       });
     } else {
-      await alarmService
-          .editAlarm(context, alarmModel, widget.index ?? 0)
-          .then((res) {
+      await alarmService.editAlarmById(context, alarmModel).then((res) {
         if (mounted) {
           Navigator.pop(context, true);
         }
@@ -199,9 +197,13 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
   }
 
   void deleteAlarm() async {
-    await alarmService.deleteAlarm(context, widget.index ?? 0).then((res) {
-      if (mounted) Navigator.pop(context, true);
-    });
+    if (widget.alarm?.id != null) {
+      await alarmService
+          .deleteAlarmById(context, widget.alarm!.id!, reschedule: true)
+          .then((res) {
+        if (mounted) Navigator.pop(context, true);
+      });
+    }
   }
 
   Widget buildTimeSelector() {
