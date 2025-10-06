@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:alarm/alarm.dart';
 import 'package:flutter/material.dart';
 import 'package:my_alarms/core/utils/localization_util.dart';
+import 'package:my_alarms/models/alarm_model.dart';
 import 'package:my_alarms/services/alarm_service.dart';
 import 'package:my_alarms/theme/colors.dart';
 
@@ -42,7 +43,7 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
       timer.cancel();
       if (mounted) {
         Navigator.pop(context);
-        await alarmService.setNextAlarm(context);
+        await alarmService.setNextAlarm(context, removeSnooze: true);
         await widget.loadAlarms();
       }
     });
@@ -54,22 +55,25 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
     super.dispose();
   }
 
-  void snoozeAlarm() {
-    final now = DateTime.now();
+  Future<void> snoozeAlarm() async {
+    final snoozeDate = DateTime.now().add(Duration(minutes: 10));
 
     Alarm.stop(widget.alarmSettings.id);
 
-    Alarm.set(
-      alarmSettings: widget.alarmSettings.copyWith(
-        dateTime: now.add(const Duration(minutes: 5)),
-      ),
+    final shadow = AlarmModel(
+      id: (widget.alarmSettings.id *
+          -1000), // id distinct (négatif) pour éviter collisions
+      title: widget.alarmSettings.notificationSettings.title,
+      time: snoozeDate,
+      isActive: true,
+      loopAudio: widget.alarmSettings.loopAudio,
+      vibrate: widget.alarmSettings.vibrate,
+      volume: widget.alarmSettings.volume,
+      assetAudio: widget.alarmSettings.assetAudioPath.split('/').last,
+      isSnooze: true,
     );
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(context.translate('snooze_alarm')),
-      ),
-    );
+    await alarmService.saveAlarm(context, shadow, showToast: false);
   }
 
   @override

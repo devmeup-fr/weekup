@@ -17,10 +17,26 @@ class AlarmService {
   // ---------------------------------------------------
   // Récupération / Persistance
   // ---------------------------------------------------
-  Future<List<AlarmModel>> getAlarms() async {
+  Future<List<AlarmModel>> getAlarms({bool withoutSnooze = false}) async {
     final prefs = await SharedPreferences.getInstance();
     final alarmList = prefs.getStringList(alarmKey) ?? [];
-    return alarmList.map((s) => AlarmModel.fromMap(json.decode(s))).toList();
+
+    final alarms =
+        alarmList.map((s) => AlarmModel.fromMap(json.decode(s))).toList();
+
+    if (!withoutSnooze) return alarms;
+
+    return alarms.where((a) => a.isSnooze != true).toList();
+  }
+
+  Future<bool> isSnoozeAlarms() async {
+    final prefs = await SharedPreferences.getInstance();
+    final alarmList = prefs.getStringList(alarmKey) ?? [];
+
+    final alarms =
+        alarmList.map((s) => AlarmModel.fromMap(json.decode(s))).toList();
+
+    return alarms.any((a) => a.isSnooze == true);
   }
 
   Future<void> _persistAll(
@@ -55,12 +71,60 @@ class AlarmService {
     final prefs = await SharedPreferences.getInstance();
     final alarms = await getAlarms();
 
+    // --- Gestion du snooze ---
+    // Limite de snooze : 3 (le 4e est refusé)
+    const int kMaxSnoozes = 4;
+
+    if (alarm.isSnooze == true) {
+      final existingSnoozes = alarms.where((a) => a.isSnooze == true).toList();
+
+      int nextCount = 1;
+
+      if (existingSnoozes.isNotEmpty) {
+        final previous = existingSnoozes.reduce((p, n) {
+          final pc = p.countSnooze;
+          final nc = n.countSnooze;
+          if (pc != nc) return pc > nc ? p : n;
+
+          final pDate = p.getNextOccurrence();
+          final nDate = n.getNextOccurrence();
+          if (pDate == null && nDate == null) return p;
+          if (pDate == null) return n;
+          if (nDate == null) return p;
+          return pDate.isAfter(nDate) ? p : n;
+        });
+
+        nextCount = (previous.countSnooze) + 1;
+
+        // Refuse le 4e snooze
+        if (nextCount > kMaxSnoozes) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                  content: Text(context.translate('snooze_limit_reached'))),
+            );
+          }
+          return;
+        }
+
+        alarms.removeWhere((a) => a.id == previous.id);
+      }
+
+      alarm.countSnooze = nextCount;
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.translate('snooze_alarm'))),
+        );
+      }
+    }
+
     alarm.id ??= await _nextId();
     alarms.add(alarm);
 
     await _persistAll(prefs, alarms);
-
     await _maybeReschedule(context, reschedule: reschedule);
+
     if (showToast && context.mounted) toastNextOccurrence(context, alarm);
   }
 
@@ -112,6 +176,7 @@ class AlarmService {
   Future<AlarmModel?> findNextAlarm(BuildContext context) async {
     final prefs = await SharedPreferences.getInstance();
     final alarmList = prefs.getStringList(alarmKey) ?? [];
+
     if (alarmList.isEmpty) return null;
 
     AlarmModel? nextAlarm;
@@ -120,10 +185,11 @@ class AlarmService {
       var currentAlarm = AlarmModel.fromMap(json.decode(alarmList[i]));
       final currentAlarmDate = currentAlarm.getNextOccurrence();
 
-      // One-shot expirée → désactiver SANS replanif
+      // One-shot expirée → désactiver/supprimer SANS replanification
       final weeklyMatrix = currentAlarm.selectedDays.length == 7;
-      final isOneShot =
-          weeklyMatrix && currentAlarm.selectedDays.every((d) => !d);
+      final isOneShot = weeklyMatrix &&
+          !currentAlarm.isSnooze &&
+          currentAlarm.selectedDays.every((d) => !d);
 
       if (currentAlarmDate != null &&
           isOneShot &&
@@ -140,6 +206,22 @@ class AlarmService {
         continue;
       }
 
+      // ---------------------------------------------------
+      // Remove past Snooze
+      // ---------------------------------------------------
+      if (currentAlarm.isSnooze && currentAlarm.id != null) {
+        final snoozeDate = currentAlarm.getNextOccurrence();
+
+        // Si la date est expirée → suppression du snooze
+        if (snoozeDate == null || snoozeDate.isBefore(DateTime.now())) {
+          await deleteAlarmById(
+            context,
+            currentAlarm.id!,
+            reschedule: false,
+          );
+        }
+      }
+
       if (currentAlarmDate != null &&
           (nextAlarm == null ||
               nextAlarm.getNextOccurrence() == null ||
@@ -152,9 +234,40 @@ class AlarmService {
   }
 
   // ---------------------------------------------------
+  // Remove All Snooze
+  // ---------------------------------------------------
+  Future<void> removeAllSnooze(BuildContext context) async {
+    final prefs = await SharedPreferences.getInstance();
+    final alarmList = prefs.getStringList(alarmKey) ?? [];
+
+    if (alarmList.isEmpty) return;
+
+    for (var i = 0; i < alarmList.length; i++) {
+      var currentAlarm = AlarmModel.fromMap(json.decode(alarmList[i]));
+
+      // ---------------------------------------------------
+      // Remove past Snooze
+      // ---------------------------------------------------
+      if (currentAlarm.isSnooze && currentAlarm.id != null) {
+        final snoozeDate = currentAlarm.getNextOccurrence();
+
+        // Si la date est expirée → suppression du snooze
+        if (snoozeDate == null || snoozeDate.isBefore(DateTime.now())) {
+          await deleteAlarmById(
+            context,
+            currentAlarm.id!,
+            reschedule: false,
+          );
+        }
+      }
+    }
+  }
+
+  // ---------------------------------------------------
   // SET NEXT
   // ---------------------------------------------------
-  Future<void> setNextAlarm(BuildContext context) async {
+  Future<void> setNextAlarm(BuildContext context,
+      {removeSnooze = false}) async {
     final saved = await AlarmStorage.getSavedAlarms();
 
     for (final a in saved) {
@@ -164,6 +277,7 @@ class AlarmService {
         await AlarmStorage.unsaveAlarm(a.id);
       }
     }
+    if (removeSnooze) await removeAllSnooze(context);
 
     if (context.mounted) {
       final nextAlarm = await findNextAlarm(context);

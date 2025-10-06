@@ -24,6 +24,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   List<AlarmModel> alarms = [];
+  bool getSnoozeAlarms = false;
   late AlarmService alarmService;
 
   static StreamSubscription<AlarmSettings>? ringSubscription;
@@ -42,7 +43,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> loadAlarms() async {
-    final loadedAlarms = await alarmService.getAlarms();
+    getSnoozeAlarms = await alarmService.isSnoozeAlarms();
+    final loadedAlarms = await alarmService.getAlarms(withoutSnooze: true);
     setState(() {
       alarms = loadedAlarms.reversed.toList();
     });
@@ -116,8 +118,10 @@ class _HomeScreenState extends State<HomeScreen> {
           body: SafeArea(
               child: Column(
             children: [
+              if (getSnoozeAlarms && alarms.isEmpty)
+                NextAlarmSet(reloadAlarms: loadAlarms),
               if (alarms.isNotEmpty) ...[
-                NextAlarmSet(),
+                NextAlarmSet(reloadAlarms: loadAlarms),
                 Expanded(
                     child: ListView.builder(
                   itemCount: alarms.length,

@@ -53,7 +53,11 @@
     "create_alarm": "Création de l'alarme",
     "edit_alarm": "Édition de l'alarme",
     "delete_alarm": "Supprimer l'alarme",
-    "snooze_alarm": "Votre alarme sonnera à nouveau dans 5 minutes.",
+    "snooze_alarm": "Votre alarme sonnera à nouveau dans 10 minutes.",
     "nextDateTitle": "Prochaine alarme",
-    "nextDateToast": "Prochaine alarme prévue dans"
+    "nextDateToast": "Prochaine alarme prévue dans",
+    "snooze_explainer": "Cette alarme est un rappel différé. Il sonnera une seule fois à l'heure indiquée.",
+    "cancel_snooze": "Annuler le rappel différé",
+    "snooze_canceled": "Rappel différé a été annulé.",
+    "snooze_limit_reached": "Limite de rappel différé atteint (3). Impossible de créer un nouveau rappel différé."
 }

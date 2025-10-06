@@ -8,9 +8,9 @@ import 'package:my_alarms/services/alarm_service.dart';
 import '../core/blocs/locale_cubit.dart';
 
 class NextAlarmSet extends StatefulWidget {
-  const NextAlarmSet({
-    super.key,
-  });
+  final Function reloadAlarms;
+
+  const NextAlarmSet({super.key, required this.reloadAlarms});
 
   @override
   State<NextAlarmSet> createState() => _NextAlarmSetState();
@@ -25,6 +25,21 @@ class _NextAlarmSetState extends State<NextAlarmSet> {
     alarmService = AlarmService();
   }
 
+  Future<void> _cancelSnooze(AlarmModel snooze) async {
+    final id = snooze.id;
+    if (id == null) return;
+
+    await alarmService.deleteAlarmById(context, id, reschedule: true);
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(context.translate('snooze_canceled'))),
+    );
+
+    setState(() {});
+    widget.reloadAlarms();
+  }
+
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<AlarmModel?>(
@@ -33,15 +48,15 @@ class _NextAlarmSetState extends State<NextAlarmSet> {
         final nextAlarm = snapshot.data;
 
         if (nextAlarm?.getNextOccurrence() != null) {
+          final isSnooze = nextAlarm?.isSnooze == true;
+
           return Container(
             width: double.infinity,
-            height: MediaQuery.of(context).size.height * 0.25,
-            decoration: BoxDecoration(
-              color: Colors.transparent,
-            ),
+            constraints: const BoxConstraints(minHeight: 160),
             padding: const EdgeInsets.all(16),
+            decoration: const BoxDecoration(color: Colors.transparent),
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Text(
@@ -63,7 +78,59 @@ class _NextAlarmSetState extends State<NextAlarmSet> {
                         .bodyLarge
                         ?.copyWith(color: Colors.grey),
                   ),
-                )
+                ),
+                // --- Ruban Snooze + action Annuler ---
+                if (isSnooze) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.15),
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.snooze,
+                                size: 18, color: Colors.white),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                context.translate('snooze_explainer'),
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium
+                                    ?.copyWith(color: Colors.white),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: OutlinedButton.icon(
+                            onPressed: () => _cancelSnooze(nextAlarm!),
+                            icon: const Icon(Icons.cancel),
+                            label: Text(context.translate('cancel_snooze')),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.white,
+                              side: BorderSide(
+                                color: Colors.white.withOpacity(0.4),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ],
             ),
           );
@@ -72,13 +139,11 @@ class _NextAlarmSetState extends State<NextAlarmSet> {
         return Container(
           width: double.infinity,
           height: MediaQuery.of(context).size.height * 0.25,
-          decoration: BoxDecoration(
-            color: Colors.transparent,
-          ),
+          decoration: const BoxDecoration(color: Colors.transparent),
           alignment: Alignment.center,
           child: Text(
             context.translate('noAlarmEnabled'),
-            style: TextStyle(color: Colors.white, fontSize: 16),
+            style: const TextStyle(color: Colors.white, fontSize: 16),
           ),
         );
       },

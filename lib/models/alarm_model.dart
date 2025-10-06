@@ -26,6 +26,10 @@ class AlarmModel {
   DateTime createdAt;
   DateTime? createdFor;
 
+  // Snooze params
+  bool isSnooze;
+  int countSnooze;
+
   AlarmModel({
     this.id,
     this.title,
@@ -39,6 +43,8 @@ class AlarmModel {
     this.recurrenceWeeks = 1,
     DateTime? createdAt,
     DateTime? createdFor,
+    this.isSnooze = false,
+    this.countSnooze = 0,
   })  : createdAt = (createdAt ?? DateTime.now()).toUtc(),
         createdFor = (createdFor ?? DateTime.now()).toUtc();
 
@@ -73,6 +79,8 @@ class AlarmModel {
       'recurrenceWeeks': recurrenceWeeks,
       'createdAt': createdAt.toUtc().toIso8601String(),
       'createdFor': createdFor?.toUtc().toIso8601String(),
+      'isSnooze': isSnooze,
+      'countSnooze': countSnooze,
     };
   }
 
@@ -96,6 +104,8 @@ class AlarmModel {
       createdFor: (map['createdFor'] != null)
           ? DateTime.parse(map['createdFor'] as String)
           : null,
+      isSnooze: map['isSnooze'] as bool? ?? false,
+      countSnooze: map['countSnooze'] as int? ?? 0,
     );
   }
 
@@ -136,7 +146,7 @@ class AlarmModel {
 
     // ONE-SHOT : jour unique = ancre ; si passé, décaler au lendemain
     if (isOneShot) {
-      if (!nextDate.isAfter(now)) {
+      if (!isSnooze && !nextDate.isAfter(now)) {
         nextDate = DateTime(
           nextDate.year,
           nextDate.month,
