@@ -105,6 +105,8 @@ class AlarmService {
                   content: Text(context.translate('snooze_limit_reached'))),
             );
           }
+          await _persistAll(prefs, alarms);
+          await _maybeReschedule(context, reschedule: reschedule);
           return;
         }
       }
