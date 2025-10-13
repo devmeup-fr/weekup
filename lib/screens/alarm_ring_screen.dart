@@ -21,6 +21,7 @@ class AlarmRingScreen extends StatefulWidget {
 class _AlarmRingScreenState extends State<AlarmRingScreen> {
   late final AppLifecycleListener _listener;
   late AlarmService alarmService;
+  Timer? _pollingTimer;
 
   @override
   void initState() {
@@ -29,7 +30,7 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
     _listener = AppLifecycleListener(
       onInactive: () => snoozeAlarm(),
     );
-    Timer.periodic(const Duration(seconds: 1), (timer) async {
+    _pollingTimer = Timer.periodic(const Duration(seconds: 1), (timer) async {
       if (!mounted) {
         timer.cancel();
         return;
@@ -52,13 +53,14 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
   @override
   void dispose() {
     _listener.dispose();
+    _pollingTimer?.cancel();
     super.dispose();
   }
 
   Future<void> snoozeAlarm() async {
     final snoozeDate = DateTime.now().add(Duration(minutes: 10));
 
-    Alarm.stop(widget.alarmSettings.id);
+    await Alarm.stop(widget.alarmSettings.id);
 
     final shadow = AlarmModel(
       id: (widget.alarmSettings.id *
@@ -74,6 +76,7 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
     );
 
     await alarmService.saveAlarm(context, shadow, showToast: false);
+    Navigator.of(context).pop();
   }
 
   @override
@@ -163,8 +166,9 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
                 title: context.translate('alarmStop'),
                 color: ThemeColors.primary,
                 onPressed: () async {
-                  Alarm.stop(widget.alarmSettings.id);
+                  await Alarm.stop(widget.alarmSettings.id);
                   await alarmService.setNextAlarm(context);
+                  Navigator.of(context).pop();
                 },
               ),
             ],

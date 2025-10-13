@@ -96,6 +96,7 @@ class AlarmService {
 
         nextCount = (previous.countSnooze) + 1;
 
+        alarms.removeWhere((a) => a.id == previous.id);
         // Refuse le 4e snooze
         if (nextCount > kMaxSnoozes) {
           if (context.mounted) {
@@ -106,8 +107,6 @@ class AlarmService {
           }
           return;
         }
-
-        alarms.removeWhere((a) => a.id == previous.id);
       }
 
       alarm.countSnooze = nextCount;
