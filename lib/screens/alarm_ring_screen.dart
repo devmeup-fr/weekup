@@ -43,7 +43,9 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
 
       timer.cancel();
       if (mounted) {
-        Navigator.pop(context);
+        if (Navigator.canPop(context)) {
+          Navigator.pop(context);
+        }
         await alarmService.setNextAlarm(context, removeSnooze: true);
         await widget.loadAlarms();
       }
@@ -63,8 +65,7 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
     await Alarm.stop(widget.alarmSettings.id);
 
     final shadow = AlarmModel(
-      id: (widget.alarmSettings.id *
-          -1000), // id distinct (négatif) pour éviter collisions
+      id: null,
       title: widget.alarmSettings.notificationSettings.title,
       time: snoozeDate,
       isActive: true,

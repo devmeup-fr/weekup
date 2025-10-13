@@ -106,7 +106,7 @@ class AlarmService {
             );
           }
           await _persistAll(prefs, alarms);
-          await _maybeReschedule(context, reschedule: reschedule);
+          await _maybeReschedule(context, reschedule: true);
           return;
         }
       }
