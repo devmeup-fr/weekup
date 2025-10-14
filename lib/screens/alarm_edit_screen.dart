@@ -80,7 +80,7 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
       selectedDateTime = selectedDateTime.copyWith(second: 0, millisecond: 0);
       loopAudio = true;
       vibrate = true;
-      volume = 10;
+      volume = 40;
       fadeDuration = 0;
       assetAudio = 'marimba.mp3';
       selectedDays = List.filled(7, false);

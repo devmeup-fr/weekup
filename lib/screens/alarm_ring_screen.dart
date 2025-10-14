@@ -77,7 +77,9 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
     );
 
     await alarmService.saveAlarm(context, shadow, showToast: false);
-    Navigator.of(context).pop();
+    if (Navigator.canPop(context)) {
+      Navigator.pop(context);
+    }
   }
 
   @override
@@ -169,7 +171,10 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
                 onPressed: () async {
                   await Alarm.stop(widget.alarmSettings.id);
                   await alarmService.setNextAlarm(context);
-                  Navigator.of(context).pop();
+
+                  if (Navigator.canPop(context)) {
+                    Navigator.pop(context);
+                  }
                 },
               ),
             ],
