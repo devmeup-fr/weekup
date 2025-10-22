@@ -41,21 +41,25 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pub-
 
-
       - run: flutter pub get
       - run: flutter build apk --debug --split-per-abi --no-pub
+      - run: flutter build appbundle --debug --no-pub
 
       - name: Rename APKs with version
         run: |
           for APK in build/app/outputs/flutter-apk/*.apk; do
             mv "$APK" "${APK%.apk}-${{ github.ref_name }}.apk"
           done
+          
+          mv "build/app/outputs/bundle/debug/app-debug.aab" "build/app/outputs/bundle/debug/app-debug-${{ github.ref_name }}.aab"
 
       - name: Upload APKs
         uses: actions/upload-artifact@v4
         with:
           name: alarms-android
-          path: build/app/outputs/flutter-apk/*.apk
+          path: |
+            build/app/outputs/flutter-apk/*.apk
+            build/app/outputs/bundle/debug/*.aab
           compression-level: 0
           retention-days: 7
 
@@ -64,7 +68,10 @@ jobs:
       - name: Upload release assets
         uses: softprops/action-gh-release@v2
         with:
-          files: build/app/outputs/flutter-apk/*.apk
+          files: |
+            build/app/outputs/flutter-apk/*.apk
+            build/app/outputs/bundle/debug/*.aab
+
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
