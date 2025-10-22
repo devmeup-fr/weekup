@@ -1,0 +1,85 @@
+name: Build
+
+permissions:
+  contents: write
+
+on:
+  pull_request:
+  push:
+  release:
+    types: [ published ]
+
+jobs:
+  build-android:
+    name: Build for Android
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java with Gradle cache
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake ninja-build libgtk-3-dev
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Cache Pub packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pub-cache
+          key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pub-
+
+
+      - run: flutter pub get
+      - run: flutter build apk --debug --split-per-abi --no-pub
+
+      - name: Rename APKs with version
+        run: |
+          for APK in build/app/outputs/flutter-apk/*.apk; do
+            mv "$APK" "${APK%.apk}-${{ github.ref_name }}.apk"
+          done
+
+      - name: Upload APKs
+        uses: actions/upload-artifact@v4
+        with:
+          name: alarms-android
+          path: build/app/outputs/flutter-apk/*.apk
+          compression-level: 0
+          retention-days: 7
+
+      - run: flutter build appbundle --debug --no-pub
+
+      - name: Upload release asset
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/app/outputs/flutter-apk/*.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+#  build-ios:
+#    name: Build for iOS
+#    runs-on: macos-latest
+#    steps:
+#      - uses: actions/checkout@v4
+#      - name: Set up Flutter
+#        uses: subosito/flutter-action@v2
+#        with:
+#          channel: 'stable'
+#          architecture: x64
+#      - run: flutter pub get
+#      - run: flutter build ios --release --no-pub --no-codesign
