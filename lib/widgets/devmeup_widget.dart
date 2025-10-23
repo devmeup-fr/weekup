@@ -41,10 +41,7 @@ class DevMeUpWidget extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'DevMeUp',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
+              const Text('DevMeUp'),
               const Divider(height: 0),
               const SizedBox(height: 16),
 
@@ -64,6 +61,16 @@ class DevMeUpWidget extends StatelessWidget {
                       },
                     ),
                   ],
+                ),
+              ),
+              const Center(
+                child: Text(
+                  "Licensed under GPLv3",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.normal,
+                  ),
                 ),
               ),
             ],
