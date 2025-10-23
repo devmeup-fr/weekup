@@ -4,8 +4,10 @@ permissions:
   contents: write
 
 on:
-  pull_request:
   push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
 
 jobs:
   build-android:
