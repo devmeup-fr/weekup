@@ -44,6 +44,19 @@ jobs:
             ${{ runner.os }}-pub-
 
       - run: flutter pub get
+
+
+      - name: Update version in pubspec.yaml
+        run: |
+          VERSION=${{ github.ref_name }}
+          VERSION=${VERSION#v}
+          if [ -z "$VERSION" ] || [ "$VERSION" = "main" ]; then
+            VERSION="0.0.0-dev"
+          fi
+          sed -i "s/^version: .*/version: $VERSION/" pubspec.yaml
+          echo "Version set to: $VERSION"
+          grep version pubspec.yaml
+
       - run: flutter build apk --debug --no-pub
 
   build-ios:
@@ -56,5 +69,18 @@ jobs:
         with:
           channel: 'stable'
           architecture: x64
+
       - run: flutter pub get
+
+      - name: Update version in pubspec.yaml
+        run: |
+          VERSION=${{ github.ref_name }}
+          VERSION=${VERSION#v}
+          if [ -z "$VERSION" ] || [ "$VERSION" = "main" ]; then
+            VERSION="0.0.0-dev"
+          fi
+          sed -i "s/^version: .*/version: $VERSION/" pubspec.yaml
+          echo "Version set to: $VERSION"
+          grep version pubspec.yaml
+
       - run: flutter build ios --release --no-pub --no-codesign

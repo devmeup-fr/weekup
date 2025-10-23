@@ -42,6 +42,18 @@ jobs:
             ${{ runner.os }}-pub-
 
       - run: flutter pub get
+
+      - name: Update version in pubspec.yaml
+        run: |
+          VERSION=${{ github.ref_name }}
+          VERSION=${VERSION#v}
+          if [ -z "$VERSION" ] || [ "$VERSION" = "main" ]; then
+            VERSION="0.0.0-dev"
+          fi
+          sed -i "s/^version: .*/version: $VERSION/" pubspec.yaml
+          echo "Version set to: $VERSION"
+          grep version pubspec.yaml
+
       - run: flutter build apk --debug --split-per-abi --no-pub
       - run: flutter build appbundle --debug --no-pub
 
