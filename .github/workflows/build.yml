@@ -79,9 +79,12 @@ jobs:
         run: |
           VERSION=${{ github.ref_name }}
           VERSION=${VERSION#v}
-          if [ -z "$VERSION" ] || [ "$VERSION" = "main" ]; then
-            VERSION="0.0.0-dev"
+
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([+-][^[:space:]]+)?$ ]]; then
+            echo "Version invalide ($VERSION), utilisation de 0.0.0-nightly"
+            VERSION="0.0.0-nightly"
           fi
+
           sed -i "s/^version: .*/version: $VERSION/" pubspec.yaml
           echo "Version set to: $VERSION"
           grep version pubspec.yaml
