@@ -357,37 +357,37 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
                       const SizedBox(height: 8),
                       LayoutBuilder(
                         builder: (context, constraints) {
-                          const spacing = 3.0;
-                          final itemWidth =
-                              (constraints.maxWidth - spacing * 6) / 7;
-
-                          return Wrap(
-                            spacing: spacing,
-                            runSpacing: 0,
+                          return Row(
                             children: List.generate(7, (index) {
                               final day = context.translate('day_${index + 1}');
 
-                              return SizedBox(
-                                width: itemWidth,
-                                child: ChoiceChip(
-                                  label: FittedBox(
-                                    fit: BoxFit.scaleDown,
-                                    child: Text(day, maxLines: 1),
+                              return Expanded(
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 2), // petit espace entre chips
+                                  child: ConstrainedBox(
+                                    constraints: const BoxConstraints(minWidth: double.infinity),
+                                    child: FilterChip(
+                                      shape: selectedDays[index]
+                                          ? const StadiumBorder()
+                                          : RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                      label: Center(
+                                        child: FittedBox(
+                                          fit: BoxFit.scaleDown,
+                                          child: Text(day, maxLines: 1),
+                                        ),
+                                      ),
+                                      showCheckmark: false,
+                                      selected: selectedDays[index],
+                                      onSelected: (selected) => setState(() => selectedDays[index] = selected),
+                                      selectedColor: ThemeColors.primary,
+                                      backgroundColor: Colors.white,
+                                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                      labelPadding: const EdgeInsets.symmetric(horizontal: 0),
+                                      visualDensity: const VisualDensity(horizontal: 0, vertical: 0),
+                                    ),
                                   ),
-                                  showCheckmark: false,
-                                  selected: selectedDays[index],
-                                  onSelected: (selected) {
-                                    setState(
-                                        () => selectedDays[index] = selected);
-                                  },
-                                  selectedColor: ThemeColors.primary,
-                                  backgroundColor: Colors.white,
-                                  materialTapTargetSize:
-                                      MaterialTapTargetSize.shrinkWrap,
-                                  labelPadding:
-                                      const EdgeInsets.symmetric(horizontal: 6),
-                                  visualDensity: const VisualDensity(
-                                      horizontal: -2, vertical: -2),
                                 ),
                               );
                             }),
@@ -449,7 +449,7 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
                           ],
                         ),
                       ),
-                      TextButton(
+                      TextButton.icon(
                         onPressed: () {
                           setState(() {
                             showMoreOptions = !showMoreOptions;
@@ -463,7 +463,9 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
                             );
                           });
                         },
-                        child: Text(showMoreOptions
+                        iconAlignment: IconAlignment.end,
+                        icon: Icon(showMoreOptions ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down, size: 33),
+                        label: Text(showMoreOptions
                             ? context.translate('show_less')
                             : context.translate('show_more')),
                       ),
