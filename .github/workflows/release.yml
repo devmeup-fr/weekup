@@ -58,15 +58,14 @@ jobs:
           grep version pubspec.yaml
 
       - run: flutter build apk --debug --split-per-abi --no-pub
-      - run: flutter build appbundle --debug --no-pub
 
       - name: Rename APKs with version
         run: |
           for APK in build/app/outputs/flutter-apk/*.apk; do
-            mv "$APK" "${APK%.apk}-${{ github.ref_name }}.apk"
+            mv "$APK" "alarm-${{ github.ref_name }}-${APK}"
           done
           
-          mv "build/app/outputs/bundle/debug/app-debug.aab" "build/app/outputs/bundle/debug/app-debug-${{ github.ref_name }}.aab"
+          mv "build/app/outputs/bundle/debug/app-debug.aab" "build/app/outputs/bundle/debug/alarm-${{ github.ref_name }}-app-debug.aab"
 
       - name: Upload APKs
         uses: actions/upload-artifact@v4
