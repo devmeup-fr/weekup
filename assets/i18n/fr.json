@@ -21,6 +21,9 @@
     "schedule_exact_alarm_permission_granted": "Autorisation pour les alarmes exactes accordée.",
     "schedule_exact_alarm_permission_denied": "Autorisation pour les alarmes exactes refusée.",
     "noAlarmSet": "Aucune alarme enregistrée.",
+    "alarms": {
+        "new": "Nouvelle Alarme"
+    },
     "noAlarmEnabled": "Aucune alarme n'est définie.",
     "alarmStop": "Arrêter",
     "alarmSnooze": "Reporter",

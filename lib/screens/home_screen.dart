@@ -168,26 +168,37 @@ class _HomeScreenState extends State<HomeScreen> {
               ] else
                 Expanded(
                     child: Center(
-                  child: Text(
-                    context.translate('noAlarmSet'),
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleLarge
-                        ?.copyWith(color: Colors.grey),
+                  child: ElevatedButton.icon(
+                    onPressed: () => navigateToAlarmScreen(null, index: alarms.length),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Theme.of(context).colorScheme.primary,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(24), // ← change ici pour arrondir plus ou moins
+                      ),
+                      padding: EdgeInsets.all(16.0),
+                    ),
+                    icon: Icon(Icons.alarm_add_rounded, size: 33, color: Colors.white,),
+                    label: Text(
+                      context.translate('alarms.new'),
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleLarge
+                          ?.copyWith(color: Colors.white),
+                    ),
                   ),
                 )),
               DevMeUpWidget()
             ],
           )),
-          floatingActionButton: Padding(
+          floatingActionButton: alarms.isNotEmpty ? Padding(
             padding: const EdgeInsets.all(10),
             child: FloatingActionButton(
               onPressed: () =>
                   navigateToAlarmScreen(null, index: alarms.length),
               backgroundColor: Theme.of(context).colorScheme.primary,
-              child: const Icon(Icons.alarm_add_rounded, size: 33),
+              child: Icon(Icons.alarm_add_rounded, size: 33, semanticLabel: context.translate('alarms.new')),
             ),
-          ),
+          ) : null,
           floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
         ));
   }
