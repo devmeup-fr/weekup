@@ -5,7 +5,7 @@ import 'package:flutter_i18n/flutter_i18n.dart';
 // static get delegate =>  FlutterI18nDelegate(
 //   translationLoader: CustomNetworkFileTranslationLoader(
 //     baseUri: Uri.https("postman-echo.com", "get",
-//         {"title": "Basic network example", "content": "Translated content"}),
+//         {"title": "Basic network devmeup", "content": "Translated content"}),
 //   ),
 // );
 
