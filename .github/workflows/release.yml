@@ -43,6 +43,20 @@ jobs:
 
       - run: flutter pub get
 
+      - name: Setup Keystore
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 --decode > android/upload-keystore.jks
+          echo "storePassword=$KEYSTORE_PASSWORD" > android/key.properties
+          echo "keyPassword=$KEY_PASSWORD" >> android/key.properties
+          echo "keyAlias=$KEY_ALIAS" >> android/key.properties
+          echo "storeFile=upload-keystore.jks" >> android/key.properties
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+
+
       - name: Update version in pubspec.yaml
         run: |
           VERSION=${{ github.ref_name }}
@@ -57,7 +71,7 @@ jobs:
           echo "Version set to: $VERSION"
           grep version pubspec.yaml
 
-      - run: flutter build apk --debug --split-per-abi --no-pub
+      - run: flutter build apk --release --split-per-abi --no-pub
 
       - name: Rename APKs with version
         run: |
@@ -77,7 +91,7 @@ jobs:
           compression-level: 0
           retention-days: 7
 
-      - run: flutter build appbundle --debug --no-pub
+      - run: flutter build appbundle --release --no-pub
 
       - name: Upload release assets
         uses: softprops/action-gh-release@v2
