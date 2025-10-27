@@ -43,7 +43,7 @@ jobs:
 
       - run: flutter pub get
 
-      - name: Setup Keystore
+      - name: Setup Keystore from Secrets
         run: |
           echo "$KEYSTORE_BASE64" | base64 --decode > android/my_alarms-keystore.jks
           echo "storePassword=$KEYSTORE_PASSWORD" > android/key.properties
@@ -70,35 +70,36 @@ jobs:
           sed -i "s/^version: .*/version: $VERSION/" pubspec.yaml
           echo "Version set to: $VERSION"
           grep version pubspec.yaml
+          echo "APP_VERSION=$VERSION" >> $GITHUB_ENV
 
-      - run: flutter build apk --release --split-per-abi --no-pub
+      - run: flutter build apk --release --split-per-abi
+      - run: flutter build appbundle --release
 
-      - name: Rename APKs with version
+      - name: Rename Android files with version
         run: |
           for APK in build/app/outputs/flutter-apk/*.apk; do
-            mv "$APK" "alarm-${{ github.ref_name }}-${APK}"
+            BASENAME=$(basename "$APK")  # extrait juste le nom du fichier
+            mv "$APK" "build/app/outputs/flutter-apk/alarm-${{ env.APP_VERSION }}-${BASENAME}"
           done
           
-          mv "build/app/outputs/bundle/debug/app-debug.aab" "build/app/outputs/bundle/debug/alarm-${{ github.ref_name }}-app-debug.aab"
+          mv "build/app/outputs/bundle/release/app-release.aab" "build/app/outputs/bundle/release/alarm-${{ env.APP_VERSION }}-app-release.aab"
 
-      - name: Upload APKs
+      - name: Upload Android artifacts
         uses: actions/upload-artifact@v4
         with:
           name: alarms-android
           path: |
             build/app/outputs/flutter-apk/*.apk
-            build/app/outputs/bundle/debug/*.aab
+            build/app/outputs/bundle/release/*.aab
           compression-level: 0
           retention-days: 7
 
-      - run: flutter build appbundle --release --no-pub
-
-      - name: Upload release assets
+      - name: Upload Android release assets
         uses: softprops/action-gh-release@v2
         with:
           files: |
             build/app/outputs/flutter-apk/*.apk
-            build/app/outputs/bundle/debug/*.aab
+            build/app/outputs/bundle/release/*.aab
 
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
