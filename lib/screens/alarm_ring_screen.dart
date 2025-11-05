@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:alarm/alarm.dart';
 import 'package:flutter/material.dart';
+import 'package:volume_controller/volume_controller.dart';
 import 'package:weekup/core/utils/localization_util.dart';
 import 'package:weekup/models/alarm_model.dart';
 import 'package:weekup/services/alarm_service.dart';
@@ -22,7 +23,8 @@ class AlarmRingScreen extends StatefulWidget {
 }
 
 class _AlarmRingScreenState extends State<AlarmRingScreen> {
-  late final AppLifecycleListener _listener;
+  late final VolumeController _volumeController;
+  late final StreamSubscription<double> _subscription;
   late AlarmService alarmService;
   Timer? _pollingTimer;
 
@@ -30,7 +32,7 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
   void initState() {
     super.initState();
     alarmService = AlarmService();
-    _listener = AppLifecycleListener(onInactive: () => snoozeAlarm());
+    _volumeController = VolumeController();
     _pollingTimer = Timer.periodic(const Duration(seconds: 1), (timer) async {
       if (!mounted) {
         timer.cancel();
@@ -41,7 +43,6 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
       if (isRinging) {
         return;
       }
-
       timer.cancel();
       if (mounted) {
         if (Navigator.canPop(context)) {
@@ -51,11 +52,17 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
         await widget.loadAlarms();
       }
     });
+    _subscription = _volumeController.listener((volume) {
+      if (volume != widget.alarmSettings.volume) {
+        debugPrint('Snooze alarms with volume controller');
+        snoozeAlarm();
+      }
+    });
   }
 
   @override
   void dispose() {
-    _listener.dispose();
+    _subscription.cancel();
     _pollingTimer?.cancel();
     super.dispose();
   }

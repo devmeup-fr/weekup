@@ -1,4 +1,4 @@
-package weekupevmeup.weekup
+package fr.devmeup.weekup
 
 import io.flutter.embedding.android.FlutterActivity
 
