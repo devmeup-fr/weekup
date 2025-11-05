@@ -52,6 +52,7 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
     'der-tag.mp3',
     'early-morning-rise.mp3',
     'emotional-piano.mp3',
+    'emotional-piano-2.mp3',
     'good-morning.mp3',
     'jingle-bells.mp3',
     'kirby.mp3',
@@ -606,6 +607,7 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
                                       .last
                                       .replaceAll('.mp3', '')
                                       .replaceAll('_', ' ')
+                                      .replaceAll('-', ' ')
                                       .replaceFirstMapped(
                                         RegExp(r'^[a-zA-Z]'),
                                         (m) => m.group(0)!.toUpperCase(),
