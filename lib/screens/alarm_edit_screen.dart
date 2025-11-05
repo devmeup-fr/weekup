@@ -149,23 +149,36 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
 
   Future<void> _selectCreatedFor() async {
     DateTime now = DateTime.now();
-    final DateTime? pickedDate = await showDatePicker(
+
+    await showDialog(
       context: context,
-      initialDate: createdFor,
-      firstDate: now,
-      lastDate: now.add(Duration(days: 365)),
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(context.translate('alarm_createdFor')),
+          content: SizedBox(
+            height: 300,
+            width: 300,
+            child: CalendarDatePicker(
+              initialDate: createdFor,
+              firstDate: now,
+              lastDate: now.add(const Duration(days: 365)),
+              onDateChanged: (DateTime pickedDate) {
+                setState(() {
+                  createdFor = DateTime(
+                    pickedDate.year,
+                    pickedDate.month,
+                    pickedDate.day,
+                    now.hour,
+                    now.minute,
+                  ).toUtc();
+                });
+                Navigator.of(context).pop();
+              },
+            ),
+          ),
+        );
+      },
     );
-    if (pickedDate != null) {
-      setState(() {
-        createdFor = DateTime(
-          pickedDate.year,
-          pickedDate.month,
-          pickedDate.day,
-          now.hour,
-          now.minute,
-        ).toUtc();
-      });
-    }
   }
 
   Future<void> saveAlarm() async {
