@@ -85,7 +85,8 @@ jobs:
             VERSION="0.0.0-nightly"
           fi
 
-          sed -i "s/^version: .*/version: $VERSION/" pubspec.yaml
+          # MacOS sed requires an empty string after -i for in-place editing
+          sed -i '' "s/^version: .*/version: $VERSION/" pubspec.yaml
           echo "Version set to: $VERSION"
           grep version pubspec.yaml
 
