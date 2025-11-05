@@ -24,7 +24,7 @@ class DevMeUpWidget extends StatelessWidget {
       (
         icon: Icons.code,
         label: 'source',
-        uri: Uri.parse('https://github.com/devmeup-fr/my_alarms')
+        uri: Uri.parse('https://github.com/devmeup-fr/weekup')
       ),
     ];
 

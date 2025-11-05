@@ -1,7 +1,7 @@
 import 'package:alarm/alarm.dart';
 import 'package:flutter/material.dart';
-import 'package:my_alarms/core/utils/localization_util.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:weekup/core/utils/localization_util.dart';
 
 class AlarmPermissionsService {
   static Future<void> checkNotificationPermission(BuildContext context) async {
@@ -24,7 +24,8 @@ class AlarmPermissionsService {
   }
 
   static Future<void> checkAndroidExternalStoragePermission(
-      BuildContext context) async {
+    BuildContext context,
+  ) async {
     final status = await Permission.storage.status;
     if (status.isDenied) {
       if (context.mounted) {
@@ -44,7 +45,8 @@ class AlarmPermissionsService {
   }
 
   static Future<void> checkAndroidScheduleExactAlarmPermission(
-      BuildContext context) async {
+    BuildContext context,
+  ) async {
     final status = await Permission.scheduleExactAlarm.status;
     if (context.mounted) {
       alarmPrint(
@@ -57,7 +59,8 @@ class AlarmPermissionsService {
     if (status.isDenied) {
       if (context.mounted) {
         alarmPrint(
-            context.translate('requesting_schedule_exact_alarm_permission'));
+          context.translate('requesting_schedule_exact_alarm_permission'),
+        );
       }
       final res = await Permission.scheduleExactAlarm.request();
       if (context.mounted) {

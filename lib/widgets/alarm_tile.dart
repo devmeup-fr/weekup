@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:my_alarms/core/blocs/locale_cubit.dart';
-import 'package:my_alarms/core/utils/extension_util.dart';
-import 'package:my_alarms/core/utils/localization_util.dart';
-import 'package:my_alarms/models/alarm_model.dart';
-import 'package:my_alarms/theme/colors.dart';
+import 'package:weekup/core/blocs/locale_cubit.dart';
+import 'package:weekup/core/utils/extension_util.dart';
+import 'package:weekup/core/utils/localization_util.dart';
+import 'package:weekup/models/alarm_model.dart';
+import 'package:weekup/theme/colors.dart';
 
 class AlarmTile extends StatelessWidget {
   const AlarmTile({

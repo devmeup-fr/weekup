@@ -3,12 +3,12 @@ import 'dart:async';
 import 'package:alarm/alarm.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:my_alarms/core/utils/localization_util.dart';
-import 'package:my_alarms/models/alarm_model.dart';
-import 'package:my_alarms/services/alarm_service.dart';
-import 'package:my_alarms/theme/colors.dart';
-import 'package:my_alarms/widgets/devmeup_widget.dart';
-import 'package:my_alarms/widgets/next_alarm_set.dart';
+import 'package:weekup/core/utils/localization_util.dart';
+import 'package:weekup/models/alarm_model.dart';
+import 'package:weekup/services/alarm_service.dart';
+import 'package:weekup/theme/colors.dart';
+import 'package:weekup/widgets/devmeup_widget.dart';
+import 'package:weekup/widgets/next_alarm_set.dart';
 
 import '../services/alarm_permissions_service.dart';
 import '../widgets/alarm_tile.dart';
@@ -169,15 +169,21 @@ class _HomeScreenState extends State<HomeScreen> {
                 Expanded(
                     child: Center(
                   child: ElevatedButton.icon(
-                    onPressed: () => navigateToAlarmScreen(null, index: alarms.length),
+                    onPressed: () =>
+                        navigateToAlarmScreen(null, index: alarms.length),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Theme.of(context).colorScheme.primary,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(24), // ← change ici pour arrondir plus ou moins
+                        borderRadius: BorderRadius.circular(
+                            24), // ← change ici pour arrondir plus ou moins
                       ),
                       padding: EdgeInsets.all(16.0),
                     ),
-                    icon: Icon(Icons.alarm_add_rounded, size: 33, color: Colors.white,),
+                    icon: Icon(
+                      Icons.alarm_add_rounded,
+                      size: 33,
+                      color: Colors.white,
+                    ),
                     label: Text(
                       context.translate('alarms.new'),
                       style: Theme.of(context)
@@ -190,15 +196,19 @@ class _HomeScreenState extends State<HomeScreen> {
               DevMeUpWidget()
             ],
           )),
-          floatingActionButton: alarms.isNotEmpty ? Padding(
-            padding: const EdgeInsets.all(10),
-            child: FloatingActionButton(
-              onPressed: () =>
-                  navigateToAlarmScreen(null, index: alarms.length),
-              backgroundColor: Theme.of(context).colorScheme.primary,
-              child: Icon(Icons.alarm_add_rounded, size: 33, semanticLabel: context.translate('alarms.new')),
-            ),
-          ) : null,
+          floatingActionButton: alarms.isNotEmpty
+              ? Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: FloatingActionButton(
+                    onPressed: () =>
+                        navigateToAlarmScreen(null, index: alarms.length),
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    child: Icon(Icons.alarm_add_rounded,
+                        size: 33,
+                        semanticLabel: context.translate('alarms.new')),
+                  ),
+                )
+              : null,
           floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
         ));
   }

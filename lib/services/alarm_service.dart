@@ -5,11 +5,11 @@ import 'dart:io';
 import 'package:alarm/alarm.dart';
 import 'package:alarm/service/alarm_storage.dart';
 import 'package:flutter/material.dart';
-import 'package:my_alarms/core/enums/storage_keys_enum.dart';
-import 'package:my_alarms/core/utils/localization_util.dart';
-import 'package:my_alarms/models/alarm_model.dart';
-import 'package:my_alarms/theme/colors.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:weekup/core/enums/storage_keys_enum.dart';
+import 'package:weekup/core/utils/localization_util.dart';
+import 'package:weekup/models/alarm_model.dart';
+import 'package:weekup/theme/colors.dart';
 
 class AlarmService {
   static const String alarmKey = 'alarm_data';
@@ -40,20 +40,26 @@ class AlarmService {
   }
 
   Future<void> _persistAll(
-      SharedPreferences prefs, List<AlarmModel> alarms) async {
+    SharedPreferences prefs,
+    List<AlarmModel> alarms,
+  ) async {
     final list = alarms.map((a) => json.encode(a.toMap())).toList();
     await prefs.setStringList(alarmKey, list);
   }
 
   Future<int> _nextId() async {
     final alarms = await getAlarms();
-    final maxId =
-        alarms.fold<int>(0, (m, a) => a.id != null && a.id! > m ? a.id! : m);
+    final maxId = alarms.fold<int>(
+      0,
+      (m, a) => a.id != null && a.id! > m ? a.id! : m,
+    );
     return maxId + 1;
   }
 
-  Future<void> _maybeReschedule(BuildContext context,
-      {required bool reschedule}) async {
+  Future<void> _maybeReschedule(
+    BuildContext context, {
+    required bool reschedule,
+  }) async {
     if (reschedule && context.mounted) {
       await setNextAlarm(context);
     }
@@ -102,7 +108,8 @@ class AlarmService {
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                  content: Text(context.translate('snooze_limit_reached'))),
+                content: Text(context.translate('snooze_limit_reached')),
+              ),
             );
           }
           await _persistAll(prefs, alarms);
@@ -215,11 +222,7 @@ class AlarmService {
 
         // Si la date est expirée → suppression du snooze
         if (snoozeDate == null || snoozeDate.isBefore(DateTime.now())) {
-          await deleteAlarmById(
-            context,
-            currentAlarm.id!,
-            reschedule: false,
-          );
+          await deleteAlarmById(context, currentAlarm.id!, reschedule: false);
         }
       }
 
@@ -254,11 +257,7 @@ class AlarmService {
 
         // Si la date est expirée → suppression du snooze
         if (snoozeDate == null || snoozeDate.isBefore(DateTime.now())) {
-          await deleteAlarmById(
-            context,
-            currentAlarm.id!,
-            reschedule: false,
-          );
+          await deleteAlarmById(context, currentAlarm.id!, reschedule: false);
         }
       }
     }
@@ -267,8 +266,10 @@ class AlarmService {
   // ---------------------------------------------------
   // SET NEXT
   // ---------------------------------------------------
-  Future<void> setNextAlarm(BuildContext context,
-      {removeSnooze = false}) async {
+  Future<void> setNextAlarm(
+    BuildContext context, {
+    removeSnooze = false,
+  }) async {
     final saved = await AlarmStorage.getSavedAlarms();
 
     for (final a in saved) {
@@ -341,15 +342,18 @@ class AlarmService {
       final parts = <String>[];
       if (days > 0) {
         parts.add(
-            "$days ${days > 1 ? context.translate('common.days') : context.translate('common.day')}");
+          "$days ${days > 1 ? context.translate('common.days') : context.translate('common.day')}",
+        );
       }
       if (hours > 0) {
         parts.add(
-            "$hours ${hours > 1 ? context.translate('common.hours') : context.translate('common.hour')}");
+          "$hours ${hours > 1 ? context.translate('common.hours') : context.translate('common.hour')}",
+        );
       }
       if (mins > 0) {
         parts.add(
-            "$mins ${mins > 1 ? context.translate('common.minutes') : context.translate('common.minute')}");
+          "$mins ${mins > 1 ? context.translate('common.minutes') : context.translate('common.minute')}",
+        );
       }
 
       String durationText;
@@ -364,10 +368,7 @@ class AlarmService {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            message,
-            style: const TextStyle(color: Colors.white),
-          ),
+          content: Text(message, style: const TextStyle(color: Colors.white)),
           backgroundColor: ThemeColors.primary,
           duration: const Duration(seconds: 3),
           behavior: SnackBarBehavior.floating,

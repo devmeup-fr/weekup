@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:my_alarms/core/utils/extension_util.dart';
-import 'package:my_alarms/core/utils/localization_util.dart';
-import 'package:my_alarms/models/alarm_model.dart';
-import 'package:my_alarms/services/alarm_service.dart';
+import 'package:weekup/core/utils/extension_util.dart';
+import 'package:weekup/core/utils/localization_util.dart';
+import 'package:weekup/models/alarm_model.dart';
+import 'package:weekup/services/alarm_service.dart';
 
 import '../core/blocs/locale_cubit.dart';
 
@@ -62,21 +62,19 @@ class _NextAlarmSetState extends State<NextAlarmSet> {
                 Text(
                   context.translate('nextDateTitle'),
                   textAlign: TextAlign.center,
-                  style: Theme.of(context)
-                      .textTheme
-                      .displaySmall
-                      ?.copyWith(color: Colors.white),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.displaySmall?.copyWith(color: Colors.white),
                 ),
                 const SizedBox(height: 5),
                 BlocBuilder<LocaleCubit, Locale>(
                   builder: (context, state) => Text(
-                    nextAlarm!
-                        .getNextOccurrence()!
-                        .formatDateWS(state.languageCode),
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodyLarge
-                        ?.copyWith(color: Colors.grey),
+                    nextAlarm!.getNextOccurrence()!.formatDateWS(
+                          state.languageCode,
+                        ),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodyLarge?.copyWith(color: Colors.grey),
                   ),
                 ),
                 // --- Ruban Snooze + action Annuler ---
@@ -90,16 +88,17 @@ class _NextAlarmSetState extends State<NextAlarmSet> {
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.08),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: Colors.white.withOpacity(0.15),
-                      ),
+                      border: Border.all(color: Colors.white.withOpacity(0.15)),
                     ),
                     child: Column(
                       children: [
                         Row(
                           children: [
-                            const Icon(Icons.snooze,
-                                size: 18, color: Colors.white),
+                            const Icon(
+                              Icons.snooze,
+                              size: 18,
+                              color: Colors.white,
+                            ),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(

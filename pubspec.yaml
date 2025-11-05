@@ -1,7 +1,7 @@
-name: 'my_alarms'
-description: 'Mes Alarmes'
+name: 'weekup'
+description: 'WeekUp'
 publish_to: 'none'
-version: 0.4.3+9
+version: 0.5.0+10
 
 environment:
   sdk: '>=3.2.2 <4.0.0'
