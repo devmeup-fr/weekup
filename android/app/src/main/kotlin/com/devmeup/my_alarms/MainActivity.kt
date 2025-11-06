@@ -1,4 +1,4 @@
-package fr.devmeup.weekup
+package com.devmeup.my_alarms
 
 import io.flutter.embedding.android.FlutterActivity
 
