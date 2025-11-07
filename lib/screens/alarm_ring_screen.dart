@@ -24,53 +24,64 @@ class AlarmRingScreen extends StatefulWidget {
 
 class _AlarmRingScreenState extends State<AlarmRingScreen> {
   late final VolumeController _volumeController;
-  late final StreamSubscription<double> _subscription;
+  StreamSubscription<double>? _subscription;
   late AlarmService alarmService;
-  Timer? _pollingTimer;
+
+  bool _snoozeTriggered = false;
+  bool _stopped = false;
 
   @override
   void initState() {
     super.initState();
     alarmService = AlarmService();
     _volumeController = VolumeController();
-    _pollingTimer = Timer.periodic(const Duration(seconds: 1), (timer) async {
-      if (!mounted) {
-        timer.cancel();
-        return;
-      }
+
+    _subscription = _volumeController.listener((v) async {
+      debugPrint('Volume controller changed to $v');
+      if (_stopped || _snoozeTriggered) return;
 
       final isRinging = await Alarm.isRinging(widget.alarmSettings.id);
-      if (isRinging) {
-        return;
-      }
-      timer.cancel();
-      if (mounted) {
-        if (Navigator.canPop(context)) {
-          Navigator.pop(context);
-        }
-        await alarmService.setNextAlarm(context, removeSnooze: true);
-        await widget.loadAlarms();
+      if (!isRinging) return;
+
+      if (v != widget.alarmSettings.volume) {
+        _snoozeTriggered = true;
+        await _stopAlarm(snooze: true);
       }
     });
-    _subscription = _volumeController.listener((volume) {
-      if (volume != widget.alarmSettings.volume) {
-        debugPrint('Snooze alarms with volume controller');
-        snoozeAlarm();
+  }
+
+  Future<void> _stopAlarm({snooze = false}) async {
+    if (_stopped) return;
+
+    try {
+      _stopped = true;
+
+      await _subscription?.cancel();
+      _subscription = null;
+
+      await Alarm.stop(widget.alarmSettings.id);
+
+      if (snooze) {
+        await snoozeAlarm();
+      } else {
+        await alarmService.setNextAlarm(context);
       }
-    });
+
+      if (mounted && Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+      await widget.loadAlarms();
+    } catch (_) {}
   }
 
   @override
   void dispose() {
-    _subscription.cancel();
-    _pollingTimer?.cancel();
+    _subscription?.cancel();
     super.dispose();
   }
 
   Future<void> snoozeAlarm() async {
-    final snoozeDate = DateTime.now().add(Duration(minutes: 10));
-
-    await Alarm.stop(widget.alarmSettings.id);
+    final snoozeDate = DateTime.now().add(const Duration(minutes: 10));
 
     final shadow = AlarmModel(
       id: null,
@@ -85,9 +96,6 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
     );
 
     await alarmService.saveAlarm(context, shadow, showToast: false);
-    if (Navigator.canPop(context)) {
-      Navigator.pop(context);
-    }
   }
 
   @override
@@ -174,19 +182,16 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
                   context,
                   title: context.translate('alarmSnooze'),
                   color: ThemeColors.primaryLight,
-                  onPressed: snoozeAlarm,
+                  onPressed: () async {
+                    await _stopAlarm(snooze: true);
+                  },
                 ),
                 _buildActionButton(
                   context,
                   title: context.translate('alarmStop'),
                   color: ThemeColors.primary,
                   onPressed: () async {
-                    await Alarm.stop(widget.alarmSettings.id);
-                    await alarmService.setNextAlarm(context);
-
-                    if (Navigator.canPop(context)) {
-                      Navigator.pop(context);
-                    }
+                    await _stopAlarm();
                   },
                 ),
               ],
