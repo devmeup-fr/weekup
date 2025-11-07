@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:weekup/core/widgets/version_app_widget.dart';
 
 class DevMeUpWidget extends StatelessWidget {
   const DevMeUpWidget({super.key});
@@ -63,6 +64,7 @@ class DevMeUpWidget extends StatelessWidget {
                   ],
                 ),
               ),
+              VersionAppWidget(),
               const Center(
                 child: Text(
                   "Licensed under GPLv3",
