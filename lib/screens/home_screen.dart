@@ -5,6 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:weekup/core/utils/localization_util.dart';
 import 'package:weekup/models/alarm_model.dart';
+import 'package:weekup/screens/alarm_logs_screen.dart';
+import 'package:weekup/screens/settings_screen.dart';
+import 'package:weekup/services/alarm_log_service.dart';
 import 'package:weekup/services/alarm_service.dart';
 import 'package:weekup/theme/colors.dart';
 import 'package:weekup/widgets/devmeup_widget.dart';
@@ -51,14 +54,12 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> navigateToRingScreen(AlarmSettings alarmSettings) async {
-    // Log console pour debug
     debugPrint(
       '[ALARM] 🚨 Alarm rang -> id=${alarmSettings.id}, '
       'title=${alarmSettings.notificationSettings.title}, '
       'dateTime=${alarmSettings.dateTime}',
     );
 
-    // 👉 si tu veux stocker en historique
     await alarmService.saveAlarmLog(alarmSettings);
 
     await Navigator.push(
@@ -103,6 +104,20 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
+  Future<void> _navigateToSettings() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const SettingsScreen()),
+    );
+  }
+
+  Future<void> _navigateToLogs() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const AlarmLogsScreen()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
@@ -115,6 +130,26 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         child: Scaffold(
           backgroundColor: Colors.black87,
+          appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            title: Text(
+              context.translate('common.appTitle'),
+              style: const TextStyle(color: Colors.white),
+            ),
+            actions: [
+              // IconButton(
+              //   tooltip: context.translate('settings.title'), // optionnel
+              //   icon: const Icon(Icons.settings, color: Colors.white),
+              //   onPressed: _navigateToSettings,
+              // ),
+              IconButton(
+                tooltip: 'Logs', // ou context.translate('logs.title')
+                icon: const Icon(Icons.list_alt_rounded, color: Colors.white),
+                onPressed: _navigateToLogs,
+              ),
+            ],
+          ),
           body: SafeArea(
               child: Column(
             children: [

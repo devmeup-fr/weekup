@@ -62,5 +62,11 @@
     "snooze_explainer": "Cette alarme est un rappel différé. Elle sonnera une seule fois à l'heure indiquée.",
     "cancel_snooze": "Annuler le rappel différé",
     "snooze_canceled": "Rappel différé a été annulé.",
-    "snooze_limit_reached": "Limite de rappel différé atteint (3). Impossible de créer un nouveau rappel différé."
+    "snooze_limit_reached": "Limite de rappel différé atteint (3). Impossible de créer un nouveau rappel différé.",
+    "logs_title": "Journal",
+    "logs_remove": "Supprimer le journal",
+    "logs_none": "Aucun historique",
+    "logs_firedAt": "Déclenchement",
+    "logs_scheduledFor": "Programmée",
+    "logs_isSnooze": "Rappel différé"
 }

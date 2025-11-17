@@ -5,11 +5,13 @@ import 'dart:io';
 import 'package:alarm/alarm.dart';
 import 'package:alarm/service/alarm_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:weekup/core/enums/storage_keys_enum.dart';
 import 'package:weekup/core/utils/localization_util.dart';
 import 'package:weekup/models/alarm_model.dart';
 import 'package:weekup/theme/colors.dart';
+import 'package:weekup/utils/audio_utils.dart';
 
 class AlarmService {
   static const String alarmKey = 'alarm_data';
@@ -285,6 +287,9 @@ class AlarmService {
       final nextAlarm = await findNextAlarm(context);
       if (nextAlarm == null) return;
 
+      final audioPath =
+          await resolveAudioOrDefault("assets/musics/${nextAlarm.assetAudio}");
+
       final settings = AlarmSettings(
         id: nextAlarm.id != null ? (nextAlarm.id! + 1) : 1,
         dateTime: nextAlarm.getNextOccurrence()!,
@@ -295,7 +300,7 @@ class AlarmService {
         fadeDuration: 10.0,
         androidFullScreenIntent: true,
         warningNotificationOnKill: Platform.isIOS,
-        assetAudioPath: "assets/musics/${nextAlarm.assetAudio}",
+        assetAudioPath: audioPath,
         notificationSettings: NotificationSettings(
           title:
               nextAlarm.title ?? context.translate('alarm_notification_title'),
@@ -305,24 +310,16 @@ class AlarmService {
         ),
       );
 
-      await Alarm.set(alarmSettings: settings);
+      try {
+        await Alarm.set(alarmSettings: settings);
+      } on PlatformException catch (e, s) {
+        debugPrint('Echec Alarm.set: $e\n$s');
+      } catch (e, s) {
+        debugPrint('Erreur inattendue: $e\n$s');
+      }
     }
   }
 
-  Future<void> saveAlarmLog(AlarmSettings alarmSettings) async {
-    final prefs = await SharedPreferences.getInstance();
-    final logs = prefs.getStringList(SecureStorageKeys.alarmLogs.name) ?? [];
-
-    final logEntry = jsonEncode({
-      'id': alarmSettings.id,
-      'title': alarmSettings.notificationSettings.title,
-      'firedAt': DateTime.now().toIso8601String(),
-      'scheduledFor': alarmSettings.dateTime.toIso8601String(),
-    });
-
-    logs.add(logEntry);
-    await prefs.setStringList(SecureStorageKeys.alarmLogs.name, logs);
-  }
 
   // ---------------------------------------------------
   // Toast

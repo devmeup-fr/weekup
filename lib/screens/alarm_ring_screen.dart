@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:volume_controller/volume_controller.dart';
 import 'package:weekup/core/utils/localization_util.dart';
 import 'package:weekup/models/alarm_model.dart';
+import 'package:weekup/services/alarm_log_service.dart';
 import 'package:weekup/services/alarm_service.dart';
 import 'package:weekup/theme/colors.dart';
 
@@ -95,6 +96,7 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
       isSnooze: true,
     );
 
+    await alarmService.snoozeAlarmLog(shadow);
     await alarmService.saveAlarm(context, shadow, showToast: false);
   }
 
