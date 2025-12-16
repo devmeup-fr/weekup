@@ -30,12 +30,16 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
 
   bool _snoozeTriggered = false;
   bool _stopped = false;
+  Timer? _refreshTimer;
+  DateTime _now = DateTime.now();
 
   @override
   void initState() {
     super.initState();
     alarmService = AlarmService();
     _volumeController = VolumeController();
+
+    _startRefreshLoop();
 
     _subscription = _volumeController.listener((v) async {
       debugPrint('Volume controller changed to $v');
@@ -51,11 +55,34 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
     });
   }
 
+  void _startRefreshLoop() {
+    _refreshTimer?.cancel();
+    _refreshTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      _onRefreshTick();
+    });
+  }
+
+  Future<void> _onRefreshTick() async {
+    if (!mounted || _stopped) return;
+
+    setState(() {
+      _now = DateTime.now();
+    });
+
+    final isRinging = await Alarm.isRinging(widget.alarmSettings.id);
+    if (!isRinging && !_stopped) {
+      _stopAlarm();
+    }
+  }
+
   Future<void> _stopAlarm({snooze = false}) async {
     if (_stopped) return;
 
     try {
       _stopped = true;
+
+      _refreshTimer?.cancel();
+      _refreshTimer = null;
 
       await _subscription?.cancel();
       _subscription = null;
@@ -77,6 +104,7 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
 
   @override
   void dispose() {
+    _refreshTimer?.cancel();
     _subscription?.cancel();
     super.dispose();
   }
@@ -102,9 +130,8 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final currentTime = DateTime.now();
     final formattedTime =
-        '${currentTime.hour.toString().padLeft(2, '0')}:${currentTime.minute.toString().padLeft(2, '0')}';
+        '${_now.hour.toString().padLeft(2, '0')}:${_now.minute.toString().padLeft(2, '0')}';
 
     return Scaffold(
       body: Container(

@@ -7,7 +7,6 @@ import 'package:alarm/service/alarm_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:weekup/core/enums/storage_keys_enum.dart';
 import 'package:weekup/core/utils/localization_util.dart';
 import 'package:weekup/models/alarm_model.dart';
 import 'package:weekup/theme/colors.dart';
@@ -80,8 +79,7 @@ class AlarmService {
     final alarms = await getAlarms();
 
     // --- Gestion du snooze ---
-    // Limite de snooze : 3 (le 4e est refusé)
-    const int kMaxSnoozes = 4;
+    const int kMaxSnoozes = 3;
 
     if (alarm.isSnooze == true) {
       final existingSnoozes = alarms.where((a) => a.isSnooze == true).toList();
@@ -319,7 +317,6 @@ class AlarmService {
       }
     }
   }
-
 
   // ---------------------------------------------------
   // Toast

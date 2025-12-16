@@ -75,7 +75,8 @@ class _HomeScreenState extends State<HomeScreen> {
     unawaited(loadAlarms());
   }
 
-  Future<void> navigateToAlarmScreen(AlarmModel? alarm, {int? index}) async {
+  Future<void> navigateToAlarmEditScreen(AlarmModel? alarm,
+      {int? index}) async {
     final res = await showModalBottomSheet<bool?>(
       context: context,
       isScrollControlled: true,
@@ -173,7 +174,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           key: Key(alarm.id.toString()),
                           alarm: alarm,
                           onPressed: () =>
-                              navigateToAlarmScreen(alarm, index: index),
+                              navigateToAlarmEditScreen(alarm, index: index),
                           onDismissed: () async {
                             final removedAlarm = alarms.removeAt(index);
                             setState(() {});
@@ -205,7 +206,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Center(
                   child: ElevatedButton.icon(
                     onPressed: () =>
-                        navigateToAlarmScreen(null, index: alarms.length),
+                        navigateToAlarmEditScreen(null, index: alarms.length),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Theme.of(context).colorScheme.primary,
                       shape: RoundedRectangleBorder(
@@ -236,7 +237,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   padding: const EdgeInsets.all(10),
                   child: FloatingActionButton(
                     onPressed: () =>
-                        navigateToAlarmScreen(null, index: alarms.length),
+                        navigateToAlarmEditScreen(null, index: alarms.length),
                     backgroundColor: Theme.of(context).colorScheme.primary,
                     child: Icon(Icons.alarm_add_rounded,
                         size: 33,
