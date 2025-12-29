@@ -102,7 +102,6 @@ class AlarmService {
 
         nextCount = (previous.countSnooze) + 1;
 
-        alarms.removeWhere((a) => a.id == previous.id);
         // Refuse le 4e snooze
         if (nextCount > kMaxSnoozes) {
           if (context.mounted) {
@@ -112,7 +111,10 @@ class AlarmService {
               ),
             );
           }
-          await _persistAll(prefs, alarms);
+          // remove all snooze alarms
+          final kept = alarms.where((a) => a.isSnooze != true).toList();
+
+          await _persistAll(prefs, kept);
           await _maybeReschedule(context, reschedule: true);
           return;
         }
@@ -176,6 +178,29 @@ class AlarmService {
 
     await _persistAll(prefs, newAlarms);
     await _maybeReschedule(context, reschedule: reschedule);
+  }
+
+  // ---------------------------------------------------
+  // DELETE ALL SNOOZE
+  // ---------------------------------------------------
+  Future<void> deleteAllSnoozeAlarms(
+    BuildContext context, {
+    bool reschedule = true,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    final alarms = await getAlarms();
+
+    final kept = alarms.where((a) => a.isSnooze != true).toList();
+
+    if (kept.length == alarms.length) {
+      return;
+    }
+
+    await _persistAll(prefs, kept);
+
+    if (reschedule) {
+      await _maybeReschedule(context, reschedule: true);
+    }
   }
 
   // ---------------------------------------------------

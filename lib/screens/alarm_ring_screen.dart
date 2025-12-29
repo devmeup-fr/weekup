@@ -92,6 +92,8 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
       if (snooze) {
         await snoozeAlarm();
       } else {
+        await AlarmService().deleteAllSnoozeAlarms(context);
+
         await alarmService.setNextAlarm(context);
       }
 
