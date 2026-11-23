@@ -52,6 +52,9 @@ class AlarmModel {
   bool isSnooze;
   int countSnooze;
 
+  /// Pour un rappel différé : id de l'alarme d'origine.
+  int? snoozeOfId;
+
   AlarmModel({
     this.id,
     this.title,
@@ -69,6 +72,7 @@ class AlarmModel {
     this.skipHolidays = false,
     this.isSnooze = false,
     this.countSnooze = 0,
+    this.snoozeOfId,
   })  : createdAt = (createdAt ?? DateTime.now()).toUtc(),
         createdFor = (createdFor ?? DateTime.now()).toUtc();
 
@@ -118,6 +122,7 @@ class AlarmModel {
       'skipHolidays': skipHolidays,
       'isSnooze': isSnooze,
       'countSnooze': countSnooze,
+      'snoozeOfId': snoozeOfId,
     };
   }
 
@@ -147,6 +152,7 @@ class AlarmModel {
       skipHolidays: map['skipHolidays'] as bool? ?? false,
       isSnooze: map['isSnooze'] as bool? ?? false,
       countSnooze: map['countSnooze'] as int? ?? 0,
+      snoozeOfId: map['snoozeOfId'] as int?,
     );
   }
 

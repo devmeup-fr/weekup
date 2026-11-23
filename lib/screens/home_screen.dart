@@ -264,9 +264,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Future<void> _cancelSnooze() async {
     await alarmService.clearSnoozes(context);
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(context.translate('snooze_canceled'))),
-    );
+    // Remplace le message « Alarme supprimée · Rétablir » éventuel
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(content: Text(context.translate('snooze_canceled'))),
+      );
     await loadAlarms();
   }
 

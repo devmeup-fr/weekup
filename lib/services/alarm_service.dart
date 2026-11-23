@@ -83,6 +83,20 @@ class AlarmService {
     await prefs.setStringList(alarmKey, list);
   }
 
+  /// Retire l'alarme [id] et les rappels différés qui en découlent.
+  static List<AlarmModel> withoutAlarm(List<AlarmModel> alarms, int id) =>
+      alarms.where((a) => a.id != id && a.snoozeOfId != id).toList();
+
+  /// Retire les rappels différés de l'alarme [id].
+  static List<AlarmModel> withoutSnoozesOf(List<AlarmModel> alarms, int id) =>
+      alarms.where((a) => !(a.isSnooze && a.snoozeOfId == id)).toList();
+
+  Future<void> _resetSnoozeChain() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(PrefStorageKeys.snoozeChainCount.name);
+    await prefs.remove(PrefStorageKeys.snoozeChainAt.name);
+  }
+
   int _nextId(List<AlarmModel> alarms) {
     final maxId = alarms.fold<int>(
       0,
@@ -131,7 +145,13 @@ class AlarmService {
     if (idx < 0) throw StateError('Aucune alarme avec id=${alarm.id}');
 
     alarms[idx] = alarm;
-    await _persistAll(alarms);
+    if (alarm.isActive) {
+      await _persistAll(alarms);
+    } else {
+      final kept = withoutSnoozesOf(alarms, alarm.id!);
+      if (kept.length != alarms.length) await _resetSnoozeChain();
+      await _persistAll(kept);
+    }
 
     if (reschedule) await syncAlarms(texts);
     if (showToast && context.mounted) toastNextOccurrence(context, alarm);
@@ -147,7 +167,11 @@ class AlarmService {
   }) async {
     final texts = AlarmNotificationTexts.of(context);
     final alarms = await getAlarms();
-    await _persistAll(alarms.where((a) => a.id != id).toList());
+    final kept = withoutAlarm(alarms, id);
+    if (kept.any((a) => a.isSnooze) != alarms.any((a) => a.isSnooze)) {
+      await _resetSnoozeChain();
+    }
+    await _persistAll(kept);
     if (reschedule) await syncAlarms(texts);
   }
 
@@ -197,6 +221,7 @@ class AlarmService {
     final alarms = await getAlarms();
     final source = await getAlarmById(modelIdFromAlarmId(ringing.id));
     final shadow = AlarmModel(
+      snoozeOfId: source?.isSnooze == true ? source!.snoozeOfId : source?.id,
       id: _nextId(alarms),
       title: source?.title ?? ringing.notificationSettings.title,
       time: snoozeDate,
@@ -221,9 +246,7 @@ class AlarmService {
   /// Arrêt définitif : supprime les rappels différés et remet le compteur à 0.
   Future<void> clearSnoozes(BuildContext context) async {
     final texts = AlarmNotificationTexts.of(context);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(PrefStorageKeys.snoozeChainCount.name);
-    await prefs.remove(PrefStorageKeys.snoozeChainAt.name);
+    await _resetSnoozeChain();
 
     final alarms = await getAlarms();
     final kept = alarms.where((a) => !a.isSnooze).toList();
