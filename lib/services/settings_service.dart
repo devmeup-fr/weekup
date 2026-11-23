@@ -74,6 +74,7 @@ class AppSettings {
 
   static Future<AppSettings> load() async {
     final prefs = await SharedPreferences.getInstance();
+    await prefs.reload();
     const defaults = AppSettings();
     return AppSettings(
       snoozeMinutes: prefs.getInt(PrefStorageKeys.snoozeMinutes.name) ??

@@ -23,6 +23,25 @@ class NextAlarmWidgetTexts {
     required this.snooze,
     required this.locale,
   });
+
+  Map<String, dynamic> toMap() => {
+        'header': header,
+        'empty': empty,
+        'today': today,
+        'tomorrow': tomorrow,
+        'snooze': snooze,
+        'locale': locale,
+      };
+
+  factory NextAlarmWidgetTexts.fromMap(Map<String, dynamic> m) =>
+      NextAlarmWidgetTexts(
+        header: m['header'] as String,
+        empty: m['empty'] as String,
+        today: m['today'] as String,
+        tomorrow: m['tomorrow'] as String,
+        snooze: m['snooze'] as String,
+        locale: m['locale'] as String,
+      );
 }
 
 /// Widget Android « Prochaine alarme » (voir NextAlarmWidget.kt).

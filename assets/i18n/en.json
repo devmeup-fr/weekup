@@ -202,5 +202,9 @@
         "builtin": "Built-in sounds",
         "add": "Add a sound from your phone",
         "add_hint": "Music or audio file"
+    },
+    "ring_notif": {
+        "body": "It's {time}",
+        "channel": "Ringing alarm (smartwatches)"
     }
 }

@@ -44,6 +44,10 @@ class AlarmNotificationTexts {
         body: context.translate('upcoming.body'),
         ignore: context.translate('upcoming.ignore'),
         channelName: context.translate('upcoming.channel'),
+        ringBody: context.translate('ring_notif.body'),
+        ringStop: context.translate('alarmStop'),
+        ringSnooze: context.translate('alarmSnooze'),
+        ringChannel: context.translate('ring_notif.channel'),
       ),
       widget: NextAlarmWidgetTexts(
         header: context.translate('nextDateTitle'),
@@ -54,6 +58,46 @@ class AlarmNotificationTexts {
         locale: Localizations.localeOf(context).languageCode,
       ),
     );
+  }
+
+  static const String _cacheKey = 'cached_notification_texts';
+
+  Map<String, dynamic> toMap() => {
+        'defaultTitle': defaultTitle,
+        'body': body,
+        'stopButton': stopButton,
+        'upcoming': upcoming.toMap(),
+        'widget': widget.toMap(),
+      };
+
+  factory AlarmNotificationTexts.fromMap(Map<String, dynamic> m) =>
+      AlarmNotificationTexts(
+        defaultTitle: m['defaultTitle'] as String,
+        body: m['body'] as String,
+        stopButton: m['stopButton'] as String,
+        upcoming: UpcomingTexts.fromMap(m['upcoming'] as Map<String, dynamic>),
+        widget:
+            NextAlarmWidgetTexts.fromMap(m['widget'] as Map<String, dynamic>),
+      );
+
+  /// Derniers textes connus, pour reprogrammer sans interface (bouton d'une
+  /// notification traité app fermée).
+  static Future<AlarmNotificationTexts?> cached() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.reload();
+    final raw = prefs.getString(_cacheKey);
+    if (raw == null) return null;
+    try {
+      return AlarmNotificationTexts.fromMap(
+          jsonDecode(raw) as Map<String, dynamic>);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> cache() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_cacheKey, jsonEncode(toMap()));
   }
 }
 
@@ -75,6 +119,9 @@ class AlarmService {
   // ---------------------------------------------------
   Future<List<AlarmModel>> getAlarms({bool withoutSnooze = false}) async {
     final prefs = await SharedPreferences.getInstance();
+    // Un bouton de notification a pu modifier les alarmes depuis le moteur
+    // d'arrière-plan : relire le stockage plutôt que le cache de l'isolat.
+    await prefs.reload();
     final alarmList = prefs.getStringList(alarmKey) ?? [];
 
     final alarms = <AlarmModel>[];
@@ -203,6 +250,7 @@ class AlarmService {
   /// expire de lui-même (cas d'un arrêt depuis la notification, app fermée).
   Future<int> _snoozeChainCount() async {
     final prefs = await SharedPreferences.getInstance();
+    await prefs.reload();
     final at = prefs.getInt(PrefStorageKeys.snoozeChainAt.name);
     if (at == null) return 0;
     final last = DateTime.fromMillisecondsSinceEpoch(at);
@@ -219,11 +267,14 @@ class AlarmService {
 
   /// Crée un rappel différé à partir de l'alarme qui sonne.
   /// Retourne null si la limite de reports est atteinte.
-  Future<AlarmModel?> snooze(
-    BuildContext context,
+  Future<AlarmModel?> snooze(BuildContext context, AlarmSettings ringing) =>
+      snoozeWith(AlarmNotificationTexts.of(context), ringing);
+
+  /// Variante sans BuildContext (bouton « Reporter » d'une notification).
+  Future<AlarmModel?> snoozeWith(
+    AlarmNotificationTexts texts,
     AlarmSettings ringing,
   ) async {
-    final texts = AlarmNotificationTexts.of(context);
     final settings = await AppSettings.load();
     final count = await _snoozeChainCount() + 1;
     if (count > settings.maxSnoozes) return null;
@@ -265,8 +316,10 @@ class AlarmService {
   }
 
   /// Arrêt définitif : supprime les rappels différés et remet le compteur à 0.
-  Future<void> clearSnoozes(BuildContext context) async {
-    final texts = AlarmNotificationTexts.of(context);
+  Future<void> clearSnoozes(BuildContext context) =>
+      clearSnoozesWith(AlarmNotificationTexts.of(context));
+
+  Future<void> clearSnoozesWith(AlarmNotificationTexts texts) async {
     await _resetSnoozeChain();
 
     final alarms = await getAlarms();
@@ -352,6 +405,7 @@ class AlarmService {
   }
 
   Future<void> _doSync(AlarmNotificationTexts texts) async {
+    await texts.cache();
     final settings = await AppSettings.load();
     final resumeAt = await AppSettings.vacationResumeAt();
     final alarms = await cleanup();

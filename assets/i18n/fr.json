@@ -202,5 +202,9 @@
         "builtin": "Sons intégrés",
         "add": "Ajouter un son du téléphone",
         "add_hint": "Musique ou fichier audio"
+    },
+    "ring_notif": {
+        "body": "Il est {time}",
+        "channel": "Alarme en cours (montres connectées)"
     }
 }

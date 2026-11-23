@@ -9,6 +9,7 @@ import 'package:weekup/models/alarm_log_model.dart';
 import 'package:weekup/services/alarm_log_service.dart';
 import 'package:weekup/services/alarm_service.dart';
 import 'package:weekup/services/settings_service.dart';
+import 'package:weekup/services/upcoming_notification_service.dart';
 import 'package:weekup/theme/colors.dart';
 import 'package:weekup/utils/alarm_format.dart';
 
@@ -57,12 +58,16 @@ class _AlarmRingScreenState extends State<AlarmRingScreen>
     )..repeat();
 
     _startRefreshLoop();
-    unawaited(_loadSnoozeInfo());
+    // Après le premier affichage : les traductions ne sont pas accessibles
+    // pendant initState
+    WidgetsBinding.instance
+        .addPostFrameCallback((_) => unawaited(_loadSnoozeInfo()));
 
     _subscription = _volumeController.listener(_onVolumeChanged);
   }
 
   Future<void> _loadSnoozeInfo() async {
+    final texts = AlarmNotificationTexts.of(context).upcoming;
     final settings = await AppSettings.load();
     final remaining = await alarmService.remainingSnoozes();
     if (!mounted) return;
@@ -71,6 +76,22 @@ class _AlarmRingScreenState extends State<AlarmRingScreen>
       _silenceAfterMinutes = settings.silenceAfterMinutes;
       _remainingSnoozes = remaining;
     });
+
+    // Copie relayée aux montres connectées, avec Arrêter / Reporter
+    try {
+      await UpcomingAlarmNotifications.showRinging(
+        widget.alarmSettings,
+        texts,
+        canSnooze: remaining > 0,
+        timeout: Duration(
+          minutes: settings.silenceAfterMinutes > 0
+              ? settings.silenceAfterMinutes
+              : 30,
+        ),
+      );
+    } catch (e) {
+      debugPrint('Notification de sonnerie impossible : $e');
+    }
   }
 
   /// Un appui sur un bouton de volume reporte l'alarme.
@@ -111,9 +132,19 @@ class _AlarmRingScreenState extends State<AlarmRingScreen>
       return;
     }
 
-    // Arrêtée depuis la notification
+    // Arrêtée depuis une notification
     final isRinging = await Alarm.isRinging(widget.alarmSettings.id);
     if (!isRinging && !_stopped && mounted) {
+      // Arrêter / Reporter depuis la montre : déjà traité en arrière-plan
+      if (await UpcomingAlarmNotifications.consumeHandled(
+          widget.alarmSettings.id)) {
+        _stopped = true;
+        _refreshTimer?.cancel();
+        await _subscription?.cancel();
+        if (mounted && Navigator.canPop(context)) Navigator.pop(context);
+        await widget.loadAlarms();
+        return;
+      }
       await _stopAlarm();
     }
   }
@@ -130,6 +161,7 @@ class _AlarmRingScreenState extends State<AlarmRingScreen>
 
     try {
       await Alarm.stop(widget.alarmSettings.id);
+      await UpcomingAlarmNotifications.cancelRinging(widget.alarmSettings.id);
       if (!mounted) return;
 
       final messenger = ScaffoldMessenger.of(context);
