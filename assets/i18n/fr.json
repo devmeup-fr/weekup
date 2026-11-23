@@ -30,8 +30,8 @@
         "weekdays": "En semaine",
         "weekend": "Le week-end",
         "everyday": "Tous les jours",
-        "weekly_short": "Chaque sem.",
-        "n_weeks_short": "1 sur {weeks}"
+        "weekly_short": "Chaque semaine",
+        "n_weeks_short": "1 sem. sur {weeks}"
     },
     "skip": {
         "next": "Passer la prochaine",
@@ -177,5 +177,7 @@
             "armistice": "Armistice 1918",
             "christmas": "Noël"
         }
-    }
+    },
+    "alarm_name_hint": "Nom de l'alarme (facultatif)",
+    "sound": "Son"
 }

@@ -127,6 +127,11 @@ void main() {
   final screens = <String, Widget Function()>{
     'home': () => const HomeScreen(),
     'edit': () => AlarmEditScreen(alarm: null),
+    'edit_recurring': () => AlarmEditScreen(
+          alarm: AlarmModel.fromMap(jsonDecode(
+              (_prefsWithAlarms()[AlarmService.alarmKey]
+                  as List<String>)[0]) as Map<String, dynamic>),
+        ),
     'settings': () => const SettingsScreen(),
     'planning': () => const PlanningScreen(),
     'ring': () => AlarmRingScreen(
@@ -163,12 +168,22 @@ void main() {
 
         SharedPreferences.setMockInitialValues(_prefsWithAlarms());
         await AlarmStorage.init();
-        tester.view.physicalSize = const Size(390, 844);
+        // En mode captures, l'édition est rendue en entier (pas de défilement)
+        tester.view.physicalSize =
+            Size(390, _goldens && entry.key.startsWith('edit') ? 1500 : 844);
         tester.view.devicePixelRatio = 1;
         addTearDown(tester.view.reset);
 
         await tester.runAsync(() async {
-          await tester.pumpWidget(_app(locale, entry.value()));
+          // L'édition s'ouvre dans une feuille à 94 % de la hauteur
+          final screen = entry.key.startsWith('edit')
+              ? Align(
+                  alignment: Alignment.bottomCenter,
+                  child: FractionallySizedBox(
+                      heightFactor: 0.94, child: entry.value()),
+                )
+              : entry.value();
+          await tester.pumpWidget(_app(locale, screen));
           await Future<void>.delayed(const Duration(milliseconds: 300));
         });
         await tester.pump(const Duration(milliseconds: 500));

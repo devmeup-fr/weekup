@@ -30,8 +30,8 @@
         "weekdays": "Weekdays",
         "weekend": "Weekends",
         "everyday": "Every day",
-        "weekly_short": "Weekly",
-        "n_weeks_short": "1 in {weeks}"
+        "weekly_short": "Every week",
+        "n_weeks_short": "1 week in {weeks}"
     },
     "skip": {
         "next": "Skip next",
@@ -177,5 +177,7 @@
             "armistice": "Armistice Day",
             "christmas": "Christmas Day"
         }
-    }
+    },
+    "alarm_name_hint": "Alarm name (optional)",
+    "sound": "Sound"
 }

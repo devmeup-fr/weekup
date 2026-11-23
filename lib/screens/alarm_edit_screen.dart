@@ -447,9 +447,10 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
     );
   }
 
+  /// Bloc titré : libellé discret au-dessus d'une carte aux bords arrondis.
   Widget _section(String title, List<Widget> children) {
     return Padding(
-      padding: const EdgeInsets.only(top: 24),
+      padding: const EdgeInsets.only(top: 28),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -470,137 +471,188 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
               side: const BorderSide(color: ThemeColors.nightOutline),
             ),
             clipBehavior: Clip.antiAlias,
-            child: Column(children: children),
+            child: ListTileTheme(
+              data: const ListTileThemeData(
+                contentPadding: EdgeInsets.symmetric(horizontal: 16),
+                minTileHeight: 60,
+                minLeadingWidth: 28,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: children,
+              ),
+            ),
           ),
         ],
       ),
     );
   }
 
+  /// Puces de choix qui passent à la ligne plutôt que de déborder.
+  Widget _choiceChips<T>({
+    required Map<T, String> options,
+    required bool Function(T) isSelected,
+    required void Function(T) onSelected,
+  }) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        for (final e in options.entries)
+          ChoiceChip(
+            label: Text(e.value),
+            selected: isSelected(e.key),
+            showCheckmark: false,
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+            labelStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  color: isSelected(e.key) ? ThemeColors.night : Colors.white,
+                ),
+            onSelected: (_) => onSelected(e.key),
+          ),
+      ],
+    );
+  }
+
   Widget _presetChips() {
-    final labels = {
-      _RepeatPreset.once: 'repeat.once',
-      _RepeatPreset.weekdays: 'repeat.weekdays',
-      _RepeatPreset.weekend: 'repeat.weekend',
-      _RepeatPreset.everyday: 'repeat.everyday',
-    };
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.fromLTRB(12, 14, 12, 4),
-      child: Row(
-        children: [
-          for (final e in labels.entries)
-            Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: ChoiceChip(
-                label: Text(context.translate(e.value)),
-                selected: _preset == e.key,
-                showCheckmark: false,
-                labelStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      color:
-                          _preset == e.key ? ThemeColors.night : Colors.white,
-                    ),
-                onSelected: (_) => _applyPreset(e.key),
-              ),
-            ),
-        ],
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      child: _choiceChips<_RepeatPreset>(
+        options: {
+          _RepeatPreset.once: context.translate('repeat.once'),
+          _RepeatPreset.weekdays: context.translate('repeat.weekdays'),
+          _RepeatPreset.weekend: context.translate('repeat.weekend'),
+          _RepeatPreset.everyday: context.translate('repeat.everyday'),
+        },
+        isSelected: (p) => _preset == p,
+        onSelected: _applyPreset,
       ),
     );
   }
 
   Widget _dayToggles() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 14),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: List.generate(7, (i) {
-          final on = selectedDays[i];
-          return Semantics(
-            button: true,
-            selected: on,
-            label: shortDayName(context, i),
-            child: InkWell(
-              customBorder: const CircleBorder(),
-              onTap: () {
-                HapticFeedback.selectionClick();
-                setState(() => selectedDays[i] = !on);
-              },
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 180),
-                width: 40,
-                height: 40,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color:
-                      on ? ThemeColors.secondary : ThemeColors.nightSurfaceHigh,
-                ),
-                child: Text(
-                  context.translate('day_${i + 1}'),
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: on ? ThemeColors.night : ThemeColors.textMuted,
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 20),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          const gap = 8.0;
+          final size = ((constraints.maxWidth - gap * 6) / 7).clamp(32.0, 44.0);
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: List.generate(7, (i) {
+              final on = selectedDays[i];
+              return Semantics(
+                button: true,
+                selected: on,
+                label: shortDayName(context, i),
+                child: InkWell(
+                  customBorder: const CircleBorder(),
+                  onTap: () {
+                    HapticFeedback.selectionClick();
+                    setState(() => selectedDays[i] = !on);
+                  },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    width: size,
+                    height: size,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: on
+                          ? ThemeColors.secondary
+                          : ThemeColors.nightSurfaceHigh,
+                    ),
+                    child: Text(
+                      context.translate('day_${i + 1}'),
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: on ? ThemeColors.night : ThemeColors.textMuted,
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ),
+              );
+            }),
           );
-        }),
+        },
       ),
     );
   }
 
   Widget _frequencySelector() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(context.translate('repeat_every'),
-              style: const TextStyle(color: ThemeColors.textMuted)),
-          const SizedBox(height: 8),
-          SizedBox(
-            width: double.infinity,
-            child: SegmentedButton<int>(
-              showSelectedIcon: false,
-              segments: [
-                for (final w in [1, 2, 3, 4])
-                  ButtonSegment(
-                    value: w,
-                    label: Text(
-                      w == 1
-                          ? context.translate('repeat.weekly_short')
-                          : context.translate('repeat.n_weeks_short',
-                              translationParams: {'weeks': '$w'}),
-                    ),
-                  ),
-              ],
-              selected: {recurrenceWeeks},
-              onSelectionChanged: (s) =>
-                  setState(() => recurrenceWeeks = s.first),
-              style: SegmentedButton.styleFrom(
-                selectedBackgroundColor: ThemeColors.secondary,
-                selectedForegroundColor: ThemeColors.night,
-                side: const BorderSide(color: ThemeColors.nightOutline),
-              ),
-            ),
+          Text(
+            context.translate('repeat_every'),
+            style: Theme.of(context)
+                .textTheme
+                .bodyMedium
+                ?.copyWith(color: ThemeColors.textMuted),
+          ),
+          const SizedBox(height: 12),
+          _choiceChips<int>(
+            options: {
+              for (final w in [1, 2, 3, 4])
+                w: w == 1
+                    ? context.translate('repeat.weekly_short')
+                    : context.translate('repeat.n_weeks_short',
+                        translationParams: {'weeks': '$w'}),
+            },
+            isSelected: (w) => recurrenceWeeks == w,
+            onSelected: (w) {
+              HapticFeedback.selectionClick();
+              setState(() => recurrenceWeeks = w);
+            },
           ),
         ],
       ),
     );
   }
 
-  Widget _row({
-    required IconData icon,
-    required String label,
-    Widget? trailing,
-    VoidCallback? onTap,
-  }) {
-    return ListTile(
-      leading: Icon(icon, size: 22),
-      title: Text(label),
-      trailing: trailing,
-      onTap: onTap,
+  Widget _volume() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Icon(
+                volume == 0
+                    ? Icons.volume_off_rounded
+                    : Icons.volume_up_rounded,
+                color: ThemeColors.textMuted,
+              ),
+              // Aligné sur le titre des ListTile (icône 28 + écart 16)
+              const SizedBox(width: 20),
+              Expanded(
+                child: Text(context.translate('volume'),
+                    style: Theme.of(context).textTheme.bodyLarge),
+              ),
+              Text(
+                '${volume.round()} %',
+                style: const TextStyle(
+                  fontSize: 15,
+                  color: ThemeColors.secondary,
+                  fontFeatures: [FontFeature.tabularFigures()],
+                ),
+              ),
+            ],
+          ),
+          Slider(
+            value: volume,
+            min: 0,
+            max: 100,
+            divisions: 20,
+            onChanged: (v) => setState(() => volume = v),
+            onChangeEnd: (v) {
+              if (playing != null) VolumeController().setVolume(v / 100);
+            },
+          ),
+        ],
+      ),
     );
   }
 
@@ -610,6 +662,9 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
     final nextDate = preview.getNextOccurrence(resumeAt: resumeAt);
     final isOnce = preview.isOneShot;
     final textTheme = Theme.of(context).textTheme;
+    final mutedStyle = textTheme.bodyMedium?.copyWith(
+      color: ThemeColors.textMuted,
+    );
 
     return Scaffold(
       backgroundColor: ThemeColors.nightSurface,
@@ -619,50 +674,34 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
           children: [
             // --- En-tête ---
             Padding(
-              padding: const EdgeInsets.fromLTRB(8, 12, 12, 4),
+              padding: const EdgeInsets.fromLTRB(8, 10, 8, 0),
               child: Row(
                 children: [
-                  TextButton(
+                  IconButton(
+                    tooltip: context.translate('cancel'),
                     onPressed: () => Navigator.pop(context, false),
-                    style: TextButton.styleFrom(
-                        foregroundColor: ThemeColors.textMuted),
-                    child: Text(context.translate('cancel')),
+                    icon: const Icon(Icons.close_rounded),
                   ),
                   Expanded(
                     child: Text(
                       context
                           .translate(creating ? 'create_alarm' : 'edit_alarm'),
                       textAlign: TextAlign.center,
-                      style: textTheme.titleMedium,
+                      style: textTheme.titleLarge,
                     ),
                   ),
-                  FilledButton(
-                    onPressed: loading ? null : saveAlarm,
-                    style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 10),
-                    ),
-                    child: loading
-                        ? const SizedBox(
-                            height: 18,
-                            width: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: ThemeColors.night,
-                            ),
-                          )
-                        : Text(context.translate('save')),
-                  ),
+                  // Équilibre visuel avec le bouton de fermeture
+                  const SizedBox(width: 48),
                 ],
               ),
             ),
 
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
                 children: [
                   buildTimeSelector(),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
                   Center(
                     child: AnimatedSwitcher(
                       duration: const Duration(milliseconds: 200),
@@ -675,9 +714,23 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
                                   })}',
                         key: ValueKey(
                             '$hour:$minute:$selectedDays:$createdFor:$skipHolidays'),
-                        style: textTheme.bodyMedium
+                        style: textTheme.bodyLarge
                             ?.copyWith(color: ThemeColors.secondary),
                       ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  TextField(
+                    controller: _titleController,
+                    textCapitalization: TextCapitalization.sentences,
+                    maxLength: 40,
+                    style: textTheme.bodyLarge,
+                    decoration: InputDecoration(
+                      prefixIcon: const Icon(Icons.label_outline_rounded),
+                      hintText: context.translate('alarm_name_hint'),
+                      counterText: '',
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 18),
                     ),
                   ),
 
@@ -687,119 +740,74 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
                     _dayToggles(),
                     if (!isOnce) ...[
                       const Divider(),
-                      const SizedBox(height: 8),
                       _frequencySelector(),
                       const Divider(),
                       SwitchListTile(
+                        contentPadding: const EdgeInsets.fromLTRB(16, 6, 12, 6),
                         secondary: const Icon(Icons.celebration_outlined),
                         title: Text(context.translate('holidays.skip')),
-                        subtitle: Text(
-                          context.translate('holidays.skip_hint'),
-                          style: const TextStyle(color: ThemeColors.textMuted),
-                        ),
+                        subtitle: Text(context.translate('holidays.skip_hint'),
+                            style: mutedStyle),
                         value: skipHolidays,
                         onChanged: (v) => setState(() => skipHolidays = v),
                       ),
                     ],
                     const Divider(),
-                    _row(
-                      icon: Icons.event_rounded,
-                      label: context.translate(
-                          isOnce ? 'alarm_date' : 'alarm_createdFor'),
-                      trailing: Text(
-                        isOnce && nextDate != null
-                            ? formatRelativeDay(context, nextDate)
-                            : formatRelativeDay(context, createdFor),
-                        style: const TextStyle(
-                            fontSize: 15, color: ThemeColors.secondary),
+                    ListTile(
+                      leading: const Icon(Icons.event_rounded),
+                      title: Text(context.translate(
+                          isOnce ? 'alarm_date' : 'alarm_createdFor')),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            isOnce && nextDate != null
+                                ? formatRelativeDay(context, nextDate)
+                                : formatRelativeDay(context, createdFor),
+                            style: const TextStyle(
+                                fontSize: 15, color: ThemeColors.secondary),
+                          ),
+                          const SizedBox(width: 4),
+                          const Icon(Icons.chevron_right_rounded,
+                              color: ThemeColors.textMuted),
+                        ],
                       ),
                       onTap: _selectCreatedFor,
                     ),
                   ]),
 
-                  // --- Options ---
-                  _section(context.translate('options'), [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
-                      child: TextField(
-                        controller: _titleController,
-                        textCapitalization: TextCapitalization.sentences,
-                        maxLength: 40,
-                        decoration: InputDecoration(
-                          prefixIcon: const Icon(Icons.label_outline_rounded),
-                          hintText:
-                              context.translate('alarm_title_placeholder'),
-                          counterText: '',
+                  // --- Son ---
+                  _section(context.translate('sound'), [
+                    ListTile(
+                      leading: const Icon(Icons.music_note_rounded),
+                      title: Text(context.translate('select_audio')),
+                      subtitle: Text(audioLabel(assetAudio), style: mutedStyle),
+                      trailing: IconButton(
+                        tooltip: context.translate('preview'),
+                        onPressed: () => _togglePreview(assetAudio),
+                        icon: Icon(
+                          playing != null
+                              ? Icons.stop_circle_rounded
+                              : Icons.play_circle_outline_rounded,
+                          size: 32,
+                          color: ThemeColors.secondary,
                         ),
-                      ),
-                    ),
-                    _row(
-                      icon: Icons.music_note_rounded,
-                      label: context.translate('select_audio'),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(audioLabel(assetAudio),
-                              style: const TextStyle(
-                                  fontSize: 15, color: ThemeColors.textMuted)),
-                          const Icon(Icons.chevron_right_rounded,
-                              color: ThemeColors.textMuted),
-                        ],
                       ),
                       onTap: _pickSound,
                     ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 8, 4),
-                      child: Row(
-                        children: [
-                          Icon(
-                            volume == 0
-                                ? Icons.volume_off_rounded
-                                : Icons.volume_up_rounded,
-                            size: 22,
-                            color: ThemeColors.textMuted,
-                          ),
-                          Expanded(
-                            child: Slider(
-                              value: volume,
-                              min: 0,
-                              max: 100,
-                              divisions: 20,
-                              label: '${volume.round()} %',
-                              onChanged: (v) => setState(() => volume = v),
-                              onChangeEnd: (v) {
-                                if (playing != null) {
-                                  VolumeController().setVolume(v / 100);
-                                }
-                              },
-                            ),
-                          ),
-                          SizedBox(
-                            width: 44,
-                            child: Text('${volume.round()}%',
-                                style: const TextStyle(
-                                    color: ThemeColors.textMuted)),
-                          ),
-                          IconButton(
-                            tooltip: context.translate('preview'),
-                            onPressed: () => _togglePreview(assetAudio),
-                            icon: Icon(
-                              playing != null
-                                  ? Icons.stop_circle_rounded
-                                  : Icons.play_circle_outline_rounded,
-                              color: ThemeColors.secondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                    const Divider(),
+                    _volume(),
+                    const Divider(),
                     SwitchListTile(
+                      contentPadding: const EdgeInsets.fromLTRB(16, 2, 12, 2),
                       secondary: const Icon(Icons.vibration_rounded),
                       title: Text(context.translate('vibrate')),
                       value: vibrate,
                       onChanged: (v) => setState(() => vibrate = v),
                     ),
+                    const Divider(),
                     SwitchListTile(
+                      contentPadding: const EdgeInsets.fromLTRB(16, 2, 12, 2),
                       secondary: const Icon(Icons.repeat_rounded),
                       title: Text(context.translate('loop_audio')),
                       value: loopAudio,
@@ -808,18 +816,58 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
                   ]),
 
                   if (!creating) ...[
-                    const SizedBox(height: 24),
-                    TextButton.icon(
-                      onPressed: deleteAlarm,
-                      style: TextButton.styleFrom(
-                        foregroundColor: ThemeColors.errorSoft,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
+                    const SizedBox(height: 28),
+                    SizedBox(
+                      height: 52,
+                      child: OutlinedButton.icon(
+                        onPressed: deleteAlarm,
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: ThemeColors.errorSoft,
+                          side: BorderSide(
+                            color: ThemeColors.errorSoft.withValues(alpha: 0.4),
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        icon: const Icon(Icons.delete_outline_rounded),
+                        label: Text(context.translate('delete_alarm')),
                       ),
-                      icon: const Icon(Icons.delete_outline_rounded),
-                      label: Text(context.translate('delete_alarm')),
                     ),
                   ],
                 ],
+              ),
+            ),
+
+            // --- Action principale, toujours à portée de pouce ---
+            Container(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+              decoration: const BoxDecoration(
+                color: ThemeColors.nightSurface,
+                border:
+                    Border(top: BorderSide(color: ThemeColors.nightOutline)),
+              ),
+              child: SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: FilledButton(
+                  onPressed: loading ? null : saveAlarm,
+                  style: FilledButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                  ),
+                  child: loading
+                      ? const SizedBox(
+                          height: 22,
+                          width: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            color: ThemeColors.night,
+                          ),
+                        )
+                      : Text(context.translate('save')),
+                ),
               ),
             ),
           ],
