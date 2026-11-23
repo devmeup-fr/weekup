@@ -23,9 +23,6 @@ class LocalizationApp {
   static List<Locale> get supportedLocales => const [
         Locale('fr', 'FR'),
         Locale('en', 'EN'),
-        Locale('es', 'ES'),
-        Locale('it', 'IT'),
-        Locale('de', 'DE'),
       ];
 
   static Locale get forcedLocale => supportedLocales[0];

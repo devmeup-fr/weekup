@@ -5,15 +5,49 @@ import 'dart:io';
 import 'package:alarm/alarm.dart';
 import 'package:alarm/service/alarm_storage.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:weekup/core/enums/storage_keys_enum.dart';
 import 'package:weekup/core/utils/localization_util.dart';
 import 'package:weekup/models/alarm_model.dart';
+import 'package:weekup/services/settings_service.dart';
 import 'package:weekup/theme/colors.dart';
+import 'package:weekup/utils/alarm_format.dart';
 import 'package:weekup/utils/audio_utils.dart';
+
+/// Textes de notification, résolus avant tout `await` pour ne pas
+/// utiliser le BuildContext après un gap asynchrone.
+class AlarmNotificationTexts {
+  final String defaultTitle;
+  final String body;
+  final String stopButton;
+
+  const AlarmNotificationTexts({
+    required this.defaultTitle,
+    required this.body,
+    required this.stopButton,
+  });
+
+  factory AlarmNotificationTexts.of(BuildContext context) {
+    return AlarmNotificationTexts(
+      defaultTitle: context.translate('alarm_notification_title'),
+      body: context.translate('alarm_notification_body'),
+      stopButton: context.translate('stop_alarm_button'),
+    );
+  }
+}
 
 class AlarmService {
   static const String alarmKey = 'alarm_data';
+
+  /// Chaque alarme réserve [idFactor] identifiants côté plugin
+  /// (id * idFactor + k) : on planifie ses [occurrencesPerAlarm] prochaines
+  /// occurrences pour qu'elle sonne même si l'app n'est pas rouverte.
+  static const int idFactor = 10;
+  static const int occurrencesPerAlarm = 7;
+
+  static int modelIdFromAlarmId(int alarmId) => alarmId ~/ idFactor;
+
+  static Future<void> _syncQueue = Future.value();
 
   // ---------------------------------------------------
   // Récupération / Persistance
@@ -22,34 +56,34 @@ class AlarmService {
     final prefs = await SharedPreferences.getInstance();
     final alarmList = prefs.getStringList(alarmKey) ?? [];
 
-    final alarms =
-        alarmList.map((s) => AlarmModel.fromMap(json.decode(s))).toList();
+    final alarms = <AlarmModel>[];
+    for (final s in alarmList) {
+      try {
+        alarms.add(AlarmModel.fromMap(json.decode(s)));
+      } catch (e) {
+        debugPrint('AlarmService: alarme illisible ignorée ($e)');
+      }
+    }
 
     if (!withoutSnooze) return alarms;
-
-    return alarms.where((a) => a.isSnooze != true).toList();
+    return alarms.where((a) => !a.isSnooze).toList();
   }
 
-  Future<bool> isSnoozeAlarms() async {
+  Future<AlarmModel?> getAlarmById(int id) async {
+    final alarms = await getAlarms();
+    for (final a in alarms) {
+      if (a.id == id) return a;
+    }
+    return null;
+  }
+
+  Future<void> _persistAll(List<AlarmModel> alarms) async {
     final prefs = await SharedPreferences.getInstance();
-    final alarmList = prefs.getStringList(alarmKey) ?? [];
-
-    final alarms =
-        alarmList.map((s) => AlarmModel.fromMap(json.decode(s))).toList();
-
-    return alarms.any((a) => a.isSnooze == true);
-  }
-
-  Future<void> _persistAll(
-    SharedPreferences prefs,
-    List<AlarmModel> alarms,
-  ) async {
     final list = alarms.map((a) => json.encode(a.toMap())).toList();
     await prefs.setStringList(alarmKey, list);
   }
 
-  Future<int> _nextId() async {
-    final alarms = await getAlarms();
+  int _nextId(List<AlarmModel> alarms) {
     final maxId = alarms.fold<int>(
       0,
       (m, a) => a.id != null && a.id! > m ? a.id! : m,
@@ -57,85 +91,25 @@ class AlarmService {
     return maxId + 1;
   }
 
-  Future<void> _maybeReschedule(
-    BuildContext context, {
-    required bool reschedule,
-  }) async {
-    if (reschedule && context.mounted) {
-      await setNextAlarm(context);
-    }
-  }
-
   // ---------------------------------------------------
   // CREATE
   // ---------------------------------------------------
-  Future<void> saveAlarm(
+  Future<AlarmModel> saveAlarm(
     BuildContext context,
     AlarmModel alarm, {
     bool reschedule = true,
     bool showToast = true,
   }) async {
-    final prefs = await SharedPreferences.getInstance();
+    final texts = AlarmNotificationTexts.of(context);
     final alarms = await getAlarms();
 
-    // --- Gestion du snooze ---
-    const int kMaxSnoozes = 3;
-
-    if (alarm.isSnooze == true) {
-      final existingSnoozes = alarms.where((a) => a.isSnooze == true).toList();
-
-      int nextCount = 1;
-
-      if (existingSnoozes.isNotEmpty) {
-        final previous = existingSnoozes.reduce((p, n) {
-          final pc = p.countSnooze;
-          final nc = n.countSnooze;
-          if (pc != nc) return pc > nc ? p : n;
-
-          final pDate = p.getNextOccurrence();
-          final nDate = n.getNextOccurrence();
-          if (pDate == null && nDate == null) return p;
-          if (pDate == null) return n;
-          if (nDate == null) return p;
-          return pDate.isAfter(nDate) ? p : n;
-        });
-
-        nextCount = (previous.countSnooze) + 1;
-
-        // Refuse le 4e snooze
-        if (nextCount > kMaxSnoozes) {
-          if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(context.translate('snooze_limit_reached')),
-              ),
-            );
-          }
-          // remove all snooze alarms
-          final kept = alarms.where((a) => a.isSnooze != true).toList();
-
-          await _persistAll(prefs, kept);
-          await _maybeReschedule(context, reschedule: true);
-          return;
-        }
-      }
-
-      alarm.countSnooze = nextCount;
-
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(context.translate('snooze_alarm'))),
-        );
-      }
-    }
-
-    alarm.id ??= await _nextId();
+    alarm.id ??= _nextId(alarms);
     alarms.add(alarm);
+    await _persistAll(alarms);
 
-    await _persistAll(prefs, alarms);
-    await _maybeReschedule(context, reschedule: reschedule);
-
+    if (reschedule) await syncAlarms(texts);
     if (showToast && context.mounted) toastNextOccurrence(context, alarm);
+    return alarm;
   }
 
   // ---------------------------------------------------
@@ -150,17 +124,16 @@ class AlarmService {
     if (alarm.id == null) {
       throw ArgumentError('editAlarmById: alarm.id est null');
     }
-
-    final prefs = await SharedPreferences.getInstance();
+    final texts = AlarmNotificationTexts.of(context);
     final alarms = await getAlarms();
 
     final idx = alarms.indexWhere((a) => a.id == alarm.id);
     if (idx < 0) throw StateError('Aucune alarme avec id=${alarm.id}');
 
     alarms[idx] = alarm;
-    await _persistAll(prefs, alarms);
+    await _persistAll(alarms);
 
-    await _maybeReschedule(context, reschedule: reschedule);
+    if (reschedule) await syncAlarms(texts);
     if (showToast && context.mounted) toastNextOccurrence(context, alarm);
   }
 
@@ -172,173 +145,211 @@ class AlarmService {
     int id, {
     bool reschedule = true,
   }) async {
-    final prefs = await SharedPreferences.getInstance();
+    final texts = AlarmNotificationTexts.of(context);
     final alarms = await getAlarms();
-    final newAlarms = alarms.where((a) => a.id != id).toList();
-
-    await _persistAll(prefs, newAlarms);
-    await _maybeReschedule(context, reschedule: reschedule);
+    await _persistAll(alarms.where((a) => a.id != id).toList());
+    if (reschedule) await syncAlarms(texts);
   }
 
   // ---------------------------------------------------
-  // DELETE ALL SNOOZE
+  // SNOOZE
   // ---------------------------------------------------
-  Future<void> deleteAllSnoozeAlarms(
-    BuildContext context, {
-    bool reschedule = true,
-  }) async {
+  /// Nombre de reports déjà faits pour la sonnerie en cours. Le compteur
+  /// expire de lui-même (cas d'un arrêt depuis la notification, app fermée).
+  Future<int> _snoozeChainCount() async {
     final prefs = await SharedPreferences.getInstance();
+    final at = prefs.getInt(PrefStorageKeys.snoozeChainAt.name);
+    if (at == null) return 0;
+    final last = DateTime.fromMillisecondsSinceEpoch(at);
+    if (DateTime.now().difference(last) > const Duration(hours: 1)) return 0;
+    return prefs.getInt(PrefStorageKeys.snoozeChainCount.name) ?? 0;
+  }
+
+  /// Nombre de reports encore possibles pour l'alarme qui sonne.
+  Future<int> remainingSnoozes() async {
+    final settings = await AppSettings.load();
+    final used = await _snoozeChainCount();
+    return (settings.maxSnoozes - used).clamp(0, settings.maxSnoozes);
+  }
+
+  /// Crée un rappel différé à partir de l'alarme qui sonne.
+  /// Retourne null si la limite de reports est atteinte.
+  Future<AlarmModel?> snooze(
+    BuildContext context,
+    AlarmSettings ringing,
+  ) async {
+    final texts = AlarmNotificationTexts.of(context);
+    final settings = await AppSettings.load();
+    final count = await _snoozeChainCount() + 1;
+    if (count > settings.maxSnoozes) return null;
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(PrefStorageKeys.snoozeChainCount.name, count);
+    await prefs.setInt(
+      PrefStorageKeys.snoozeChainAt.name,
+      DateTime.now().millisecondsSinceEpoch,
+    );
+
+    final snoozeDate = DateTime.now()
+        .add(Duration(minutes: settings.snoozeMinutes))
+        .copyWith(second: 0, millisecond: 0, microsecond: 0);
+
     final alarms = await getAlarms();
+    final source = await getAlarmById(modelIdFromAlarmId(ringing.id));
+    final shadow = AlarmModel(
+      id: _nextId(alarms),
+      title: source?.title ?? ringing.notificationSettings.title,
+      time: snoozeDate,
+      isActive: true,
+      loopAudio: ringing.loopAudio,
+      vibrate: ringing.vibrate,
+      volume: ringing.volume,
+      assetAudio: source?.assetAudio ?? ringing.assetAudioPath.split('/').last,
+      selectedDays: List.filled(7, false),
+      createdFor: snoozeDate,
+      isSnooze: true,
+      countSnooze: count,
+    );
 
-    final kept = alarms.where((a) => a.isSnooze != true).toList();
+    // Un seul rappel différé à la fois
+    final kept = alarms.where((a) => !a.isSnooze).toList()..add(shadow);
+    await _persistAll(kept);
+    await syncAlarms(texts);
+    return shadow;
+  }
 
-    if (kept.length == alarms.length) {
-      return;
+  /// Arrêt définitif : supprime les rappels différés et remet le compteur à 0.
+  Future<void> clearSnoozes(BuildContext context) async {
+    final texts = AlarmNotificationTexts.of(context);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(PrefStorageKeys.snoozeChainCount.name);
+    await prefs.remove(PrefStorageKeys.snoozeChainAt.name);
+
+    final alarms = await getAlarms();
+    final kept = alarms.where((a) => !a.isSnooze).toList();
+    if (kept.length != alarms.length) await _persistAll(kept);
+    await syncAlarms(texts);
+  }
+
+  // ---------------------------------------------------
+  // CLEANUP : désactive les one-shot passées, supprime les snoozes passés
+  // ---------------------------------------------------
+  Future<List<AlarmModel>> cleanup() async {
+    final alarms = await getAlarms();
+    final now = DateTime.now();
+    var changed = false;
+    final kept = <AlarmModel>[];
+
+    for (final a in alarms) {
+      if (a.isSnooze) {
+        if (!a.isActive || a.isExpired(now: now)) {
+          changed = true;
+          continue;
+        }
+      } else if (a.isActive && a.isExpired(now: now)) {
+        a.isActive = false;
+        changed = true;
+      }
+      if (a.skippedUntil != null && !a.skippedUntil!.isAfter(now)) {
+        a.skippedUntil = null;
+        changed = true;
+      }
+      kept.add(a);
     }
 
-    await _persistAll(prefs, kept);
-
-    if (reschedule) {
-      await _maybeReschedule(context, reschedule: true);
-    }
+    if (changed) await _persistAll(kept);
+    return kept;
   }
 
   // ---------------------------------------------------
   // FIND NEXT
   // ---------------------------------------------------
-  Future<AlarmModel?> findNextAlarm(BuildContext context) async {
-    final prefs = await SharedPreferences.getInstance();
-    final alarmList = prefs.getStringList(alarmKey) ?? [];
-
-    if (alarmList.isEmpty) return null;
-
-    AlarmModel? nextAlarm;
-
-    for (var i = 0; i < alarmList.length; i++) {
-      var currentAlarm = AlarmModel.fromMap(json.decode(alarmList[i]));
-      final currentAlarmDate = currentAlarm.getNextOccurrence();
-
-      // One-shot expirée → désactiver/supprimer SANS replanification
-      final weeklyMatrix = currentAlarm.selectedDays.length == 7;
-      final isOneShot = weeklyMatrix &&
-          !currentAlarm.isSnooze &&
-          currentAlarm.selectedDays.every((d) => !d);
-
-      if (currentAlarmDate != null &&
-          isOneShot &&
-          currentAlarmDate.difference(currentAlarm.getDateFor()).inDays > 0) {
-        currentAlarm.isActive = false;
-        if (context.mounted) {
-          await editAlarmById(
-            context,
-            currentAlarm,
-            reschedule: false,
-            showToast: false,
-          );
-        }
-        continue;
-      }
-
-      // ---------------------------------------------------
-      // Remove past Snooze
-      // ---------------------------------------------------
-      if (currentAlarm.isSnooze && currentAlarm.id != null) {
-        final snoozeDate = currentAlarm.getNextOccurrence();
-
-        // Si la date est expirée → suppression du snooze
-        if (snoozeDate == null || snoozeDate.isBefore(DateTime.now())) {
-          await deleteAlarmById(context, currentAlarm.id!, reschedule: false);
-        }
-      }
-
-      if (currentAlarmDate != null &&
-          (nextAlarm == null ||
-              nextAlarm.getNextOccurrence() == null ||
-              currentAlarmDate.isBefore(nextAlarm.getNextOccurrence()!))) {
-        nextAlarm = currentAlarm;
+  Future<({AlarmModel alarm, DateTime date})?> findNextAlarm() async {
+    final alarms = await cleanup();
+    final resumeAt = await AppSettings.vacationResumeAt();
+    ({AlarmModel alarm, DateTime date})? next;
+    for (final a in alarms) {
+      final date = a.getNextOccurrence(resumeAt: resumeAt);
+      if (date == null) continue;
+      if (next == null || date.isBefore(next.date)) {
+        next = (alarm: a, date: date);
       }
     }
-
-    return nextAlarm;
+    return next;
   }
 
   // ---------------------------------------------------
-  // Remove All Snooze
+  // SYNC : planifie toutes les occurrences à venir dans le plugin
   // ---------------------------------------------------
-  Future<void> removeAllSnooze(BuildContext context) async {
-    final prefs = await SharedPreferences.getInstance();
-    final alarmList = prefs.getStringList(alarmKey) ?? [];
-
-    if (alarmList.isEmpty) return;
-
-    for (var i = 0; i < alarmList.length; i++) {
-      var currentAlarm = AlarmModel.fromMap(json.decode(alarmList[i]));
-
-      // ---------------------------------------------------
-      // Remove past Snooze
-      // ---------------------------------------------------
-      if (currentAlarm.isSnooze && currentAlarm.id != null) {
-        final snoozeDate = currentAlarm.getNextOccurrence();
-
-        // Si la date est expirée → suppression du snooze
-        if (snoozeDate == null || snoozeDate.isBefore(DateTime.now())) {
-          await deleteAlarmById(context, currentAlarm.id!, reschedule: false);
-        }
-      }
-    }
+  Future<void> syncAlarms(AlarmNotificationTexts texts) {
+    final run = _syncQueue.then((_) => _doSync(texts));
+    _syncQueue = run.catchError((Object e, StackTrace s) {
+      debugPrint('Echec synchronisation alarmes: $e\n$s');
+    });
+    return _syncQueue;
   }
 
-  // ---------------------------------------------------
-  // SET NEXT
-  // ---------------------------------------------------
-  Future<void> setNextAlarm(
-    BuildContext context, {
-    removeSnooze = false,
-  }) async {
-    final saved = await AlarmStorage.getSavedAlarms();
+  Future<void> _doSync(AlarmNotificationTexts texts) async {
+    final settings = await AppSettings.load();
+    final resumeAt = await AppSettings.vacationResumeAt();
+    final alarms = await cleanup();
 
-    for (final a in saved) {
-      final isRinging = await Alarm.isRinging(a.id);
-      if (!isRinging) {
+    // Ne jamais toucher à une alarme qui sonne
+    final ringingIds = <int>{};
+    for (final a in await AlarmStorage.getSavedAlarms()) {
+      if (await Alarm.isRinging(a.id)) {
+        ringingIds.add(a.id);
+      } else {
         await Alarm.stop(a.id);
-        await AlarmStorage.unsaveAlarm(a.id);
       }
     }
-    if (removeSnooze) await removeAllSnooze(context);
 
-    if (context.mounted) {
-      final nextAlarm = await findNextAlarm(context);
-      if (nextAlarm == null) return;
+    // Deux réglages à la même seconde se remplacent dans le plugin :
+    // on ne garde que le premier.
+    final usedTimes = <int>{};
+    final now = DateTime.now();
+
+    for (final alarm in alarms) {
+      if (alarm.id == null) continue;
+      final dates = alarm.upcomingOccurrences(
+        alarm.isSnooze ? 1 : occurrencesPerAlarm,
+        now: now,
+        resumeAt: resumeAt,
+      );
+      if (dates.isEmpty) continue;
 
       final audioPath =
-          await resolveAudioOrDefault("assets/musics/${nextAlarm.assetAudio}");
+          await resolveAudioOrDefault('assets/musics/${alarm.assetAudio}');
 
-      final settings = AlarmSettings(
-        id: nextAlarm.id != null ? (nextAlarm.id! + 1) : 1,
-        dateTime: nextAlarm.getNextOccurrence()!,
-        loopAudio: nextAlarm.loopAudio,
-        vibrate: nextAlarm.vibrate,
-        volume: nextAlarm.volume,
-        volumeEnforced: true,
-        fadeDuration: 10.0,
-        androidFullScreenIntent: true,
-        warningNotificationOnKill: Platform.isIOS,
-        assetAudioPath: audioPath,
-        notificationSettings: NotificationSettings(
-          title:
-              nextAlarm.title ?? context.translate('alarm_notification_title'),
-          body: context.translate('alarm_notification_body'),
-          stopButton: context.translate('stop_alarm_button'),
-          icon: 'notification_icon',
-        ),
-      );
+      for (var k = 0; k < dates.length; k++) {
+        final pluginId = alarm.id! * idFactor + k;
+        final key = dates[k].millisecondsSinceEpoch ~/ 1000;
+        if (ringingIds.contains(pluginId) || !usedTimes.add(key)) continue;
 
-      try {
-        await Alarm.set(alarmSettings: settings);
-      } on PlatformException catch (e, s) {
-        debugPrint('Echec Alarm.set: $e\n$s');
-      } catch (e, s) {
-        debugPrint('Erreur inattendue: $e\n$s');
+        final alarmSettings = AlarmSettings(
+          id: pluginId,
+          dateTime: dates[k],
+          loopAudio: alarm.loopAudio,
+          vibrate: alarm.vibrate,
+          volume: alarm.volume,
+          volumeEnforced: true,
+          fadeDuration: settings.fadeSeconds.toDouble(),
+          androidFullScreenIntent: true,
+          warningNotificationOnKill: Platform.isIOS,
+          assetAudioPath: audioPath,
+          notificationSettings: NotificationSettings(
+            title: alarm.hasTitle ? alarm.title! : texts.defaultTitle,
+            body: texts.body,
+            stopButton: texts.stopButton,
+            icon: 'notification_icon',
+          ),
+        );
+
+        try {
+          await Alarm.set(alarmSettings: alarmSettings);
+        } catch (e, s) {
+          debugPrint('Echec Alarm.set($pluginId): $e\n$s');
+        }
       }
     }
   }
@@ -346,53 +357,35 @@ class AlarmService {
   // ---------------------------------------------------
   // Toast
   // ---------------------------------------------------
-  void toastNextOccurrence(BuildContext context, AlarmModel alarm) {
-    final nextOccurrence = alarm.getNextOccurrence();
-    if (alarm.isActive && nextOccurrence != null) {
-      final now = DateTime.now();
-      final diff = nextOccurrence.difference(now);
+  Future<void> toastNextOccurrence(
+    BuildContext context,
+    AlarmModel alarm,
+  ) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final resumeAt = await AppSettings.vacationResumeAt();
+    if (!context.mounted) return;
+    final nextOccurrence = alarm.getNextOccurrence(resumeAt: resumeAt);
+    if (!alarm.isActive || nextOccurrence == null) return;
 
-      if (diff.inSeconds <= 0 || diff.inSeconds < 60) return;
+    final message = context.translate(
+      'nextDateToast',
+      translationParams: {
+        'duration': formatCountdown(
+          context,
+          nextOccurrence.difference(DateTime.now()),
+        ),
+      },
+    );
 
-      final days = diff.inDays;
-      final hours = diff.inHours % 24;
-      final mins = diff.inMinutes % 60;
-
-      final parts = <String>[];
-      if (days > 0) {
-        parts.add(
-          "$days ${days > 1 ? context.translate('common.days') : context.translate('common.day')}",
-        );
-      }
-      if (hours > 0) {
-        parts.add(
-          "$hours ${hours > 1 ? context.translate('common.hours') : context.translate('common.hour')}",
-        );
-      }
-      if (mins > 0) {
-        parts.add(
-          "$mins ${mins > 1 ? context.translate('common.minutes') : context.translate('common.minute')}",
-        );
-      }
-
-      String durationText;
-      if (parts.length > 1) {
-        durationText =
-            "${parts.sublist(0, parts.length - 1).join(' ')} ${context.translate('common.and')} ${parts.last}";
-      } else {
-        durationText = parts.isNotEmpty ? parts.first : "";
-      }
-
-      final message = "${context.translate('nextDateToast')} $durationText";
-
-      ScaffoldMessenger.of(context).showSnackBar(
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
         SnackBar(
-          content: Text(message, style: const TextStyle(color: Colors.white)),
-          backgroundColor: ThemeColors.primary,
+          content: Text(message),
+          backgroundColor: ThemeColors.nightSurfaceHigh,
           duration: const Duration(seconds: 3),
           behavior: SnackBarBehavior.floating,
         ),
       );
-    }
   }
 }

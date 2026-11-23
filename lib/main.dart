@@ -4,12 +4,13 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:permission_handler/permission_handler.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/blocs/locale_cubit.dart';
 import 'core/utils/localization_util.dart';
 import 'screens/home_screen.dart';
+import 'theme/colors.dart';
 import 'theme/themes.dart';
 
 // ignore: constant_identifier_names
@@ -19,9 +20,10 @@ const bool WITH_CLEAN_PREF = false;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Polices embarquées (assets/google_fonts) : pas de permission INTERNET en release
+  GoogleFonts.config.allowRuntimeFetching = false;
 
   setSystemUIMode();
-  requestPermissions();
 
   await Alarm.init();
 
@@ -48,14 +50,14 @@ void setSystemUIMode() {
     SystemUiMode.manual,
     overlays: [SystemUiOverlay.top, SystemUiOverlay.bottom],
   );
-}
-
-Future<void> requestPermissions() async {
-  await [
-    Permission.storage,
-    Permission.notification,
-    Permission.scheduleExactAlarm,
-  ].request();
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.light,
+      systemNavigationBarColor: ThemeColors.night,
+      systemNavigationBarIconBrightness: Brightness.light,
+    ),
+  );
 }
 
 Future<void> handlerCleanPref() async {
@@ -81,17 +83,18 @@ class MyApp extends StatelessWidget {
                 GlobalCupertinoLocalizations.delegate,
               ],
               localeResolutionCallback: (locale, supportedLocales) {
-                if (!supportedLocales.contains(locale)) {
-                  return LocalizationApp.forcedLocale;
+                for (final l in supportedLocales) {
+                  if (l.languageCode == locale?.languageCode) return l;
                 }
-                return locale;
+                return LocalizationApp.forcedLocale;
               },
               locale: state,
               supportedLocales: LocalizationApp.supportedLocales,
               onGenerateTitle: (BuildContext context) =>
                   context.translate("common.appTitle"),
-              theme: Themes.light(),
-              home: HomeScreen(),
+              theme: Themes.night(),
+              themeMode: ThemeMode.dark,
+              home: const HomeScreen(),
             ));
   }
 }

@@ -4,13 +4,20 @@ A lightweight, privacy‑friendly alarm clock built with Flutter. Create one‑s
 
 
 ## Highlights
-- Create, edit, and delete alarms
-- One‑shot alarms (single day) or recurring by weekday
-- Repeat every N weeks (1–4), aligned to a chosen reference date
-- Snooze with a safe cap (by default up to 4 snoozes per alarm)
+- Create, edit, duplicate and delete alarms (with undo)
+- One‑shot alarms (single day) or recurring by weekday, with quick presets (weekdays, weekend, every day)
+- Repeat every N weeks (1–4), aligned on calendar weeks from a chosen start date
+- Skip the next occurrence of a recurring alarm
+- Per‑alarm "skip French public holidays" option (computed offline, Easter‑based ones included)
+- Vacation mode: pause every recurring alarm until a return date; one‑shot alarms still ring
+- Planner: what rings each day until the end of next week, with holidays, vacation and skipped occurrences shown
+- Snooze from the ring screen or a volume button; length (5–30 min) and cap (1–10) are configurable
+- Gradual volume (fade‑in) setting
 - Choose from bundled ringtones and preview them while editing
 - Per‑alarm options: loop audio, vibrate, volume
-- Next alarm is always computed and scheduled via the `alarm` plugin
+- The next 7 occurrences of every alarm are scheduled ahead, so alarms keep ringing even if the app isn't reopened
+- Settings screen with a reliability check (notifications, exact alarms, battery optimization)
+- History of rings, snoozes and stops, grouped by day
 - Localized UI (en, fr)
 
 
@@ -53,7 +60,9 @@ The app also uses a full‑screen intent when ringing so you can stop/snooze eas
 - Alarms are persisted in `SharedPreferences` as JSON (`AlarmService`).
 - The next occurrence is computed from: hour/minute, weekday selections, “repeat every N weeks”, and a reference date (`createdFor`).
 - The soonest upcoming alarm is scheduled with the `alarm` plugin; when it rings, a full‑screen screen offers Snooze and Stop.
-- Snooze creates a temporary shadow alarm in 10 minutes; the total snoozes per chain are capped (default 4) to prevent abuse.
+- Snooze creates a temporary one‑shot shadow alarm; snoozes per ring are capped (default 3, see Settings).
+- Occurrence logic is covered by unit tests (`test/alarm_model_test.dart`); `test/screens_render_test.dart` renders every screen in FR/EN and fails on layout overflow or missing translation keys.
+- `make help` lists the build shortcuts (`make check`, `make android-bundle`, `make ios-dist`…).
 
 Key files you might look at:
 - `lib/screens/home_screen.dart` — list of alarms and navigation

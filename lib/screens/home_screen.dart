@@ -5,10 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:weekup/core/utils/localization_util.dart';
 import 'package:weekup/models/alarm_model.dart';
-import 'package:weekup/screens/alarm_logs_screen.dart';
+import 'package:weekup/screens/planning_screen.dart';
 import 'package:weekup/screens/settings_screen.dart';
 import 'package:weekup/services/alarm_log_service.dart';
 import 'package:weekup/services/alarm_service.dart';
+import 'package:weekup/services/settings_service.dart';
 import 'package:weekup/theme/colors.dart';
 import 'package:weekup/widgets/devmeup_widget.dart';
 import 'package:weekup/widgets/next_alarm_set.dart';
@@ -25,31 +26,71 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   List<AlarmModel> alarms = [];
-  bool getSnoozeAlarms = false;
+  AlarmModel? snooze;
+  ({AlarmModel alarm, DateTime date})? next;
+  DateTime? resumeAt;
+  bool loaded = false;
   late AlarmService alarmService;
 
   static StreamSubscription<AlarmSettings>? ringSubscription;
-  static StreamSubscription<int>? updateSubscription;
+  bool _ringScreenOpen = false;
+  Timer? _ticker;
 
   @override
   void initState() {
     super.initState();
-    AlarmPermissionsService.checkNotificationPermission(context);
-    if (Alarm.android) {
-      AlarmPermissionsService.checkAndroidScheduleExactAlarmPermission(context);
-    }
+    WidgetsBinding.instance.addObserver(this);
     alarmService = AlarmService();
-    unawaited(loadAlarms());
     ringSubscription ??= Alarm.ringStream.stream.listen(navigateToRingScreen);
+    _ticker = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (mounted) setState(() {});
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await AlarmPermissionsService.checkNotificationPermission(context);
+      if (Alarm.android && mounted) {
+        await AlarmPermissionsService.checkAndroidScheduleExactAlarmPermission(
+          context,
+        );
+      }
+      if (mounted) await _resync();
+    });
+    unawaited(loadAlarms());
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) unawaited(_resync());
+  }
+
+  /// Replanifie toutes les alarmes (au démarrage et au retour dans l'app).
+  Future<void> _resync() async {
+    await alarmService.syncAlarms(AlarmNotificationTexts.of(context));
+    await loadAlarms();
   }
 
   Future<void> loadAlarms() async {
-    getSnoozeAlarms = await alarmService.isSnoozeAlarms();
-    final loadedAlarms = await alarmService.getAlarms(withoutSnooze: true);
+    final all = await alarmService.cleanup();
+    final found = await alarmService.findNextAlarm();
+    final vacation = await AppSettings.vacationResumeAt();
+    if (!mounted) return;
+
+    final regular = all.where((a) => !a.isSnooze).toList()
+      ..sort((a, b) {
+        final ta = a.time.toLocal(), tb = b.time.toLocal();
+        final byTime =
+            (ta.hour * 60 + ta.minute).compareTo(tb.hour * 60 + tb.minute);
+        return byTime != 0 ? byTime : (a.id ?? 0).compareTo(b.id ?? 0);
+      });
+
     setState(() {
-      alarms = loadedAlarms.reversed.toList();
+      alarms = regular;
+      snooze = all.where((a) => a.isSnooze).firstOrNull;
+      next = found;
+      resumeAt = vacation;
+      loaded = true;
     });
   }
 
@@ -59,8 +100,11 @@ class _HomeScreenState extends State<HomeScreen> {
       'title=${alarmSettings.notificationSettings.title}, '
       'dateTime=${alarmSettings.dateTime}',
     );
+    if (_ringScreenOpen) return;
+    _ringScreenOpen = true;
 
     await alarmService.saveAlarmLog(alarmSettings);
+    if (!mounted) return;
 
     await Navigator.push(
       context,
@@ -72,180 +116,298 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
 
+    _ringScreenOpen = false;
     unawaited(loadAlarms());
   }
 
-  Future<void> navigateToAlarmEditScreen(AlarmModel? alarm,
-      {int? index}) async {
+  Future<void> navigateToAlarmEditScreen(AlarmModel? alarm) async {
     final res = await showModalBottomSheet<bool?>(
       context: context,
       isScrollControlled: true,
-      isDismissible: false,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
+      useSafeArea: true,
+      showDragHandle: false,
+      builder: (context) => FractionallySizedBox(
+        heightFactor: 0.94,
+        child: AlarmEditScreen(alarm: alarm),
       ),
-      builder: (context) {
-        return FractionallySizedBox(
-          heightFactor: 0.65,
-          child: AlarmEditScreen(
-            alarm: alarm,
-            index: index,
-          ),
-        );
-      },
     );
 
-    if (res != null && res == true) unawaited(loadAlarms());
+    if (res == true) unawaited(loadAlarms());
   }
 
   @override
   void dispose() {
-    ringSubscription?.cancel();
-    updateSubscription?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    _ticker?.cancel();
     super.dispose();
   }
 
-  Future<void> _navigateToSettings() async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const SettingsScreen()),
-    );
+  Future<void> _navigateTo(Widget screen) async {
+    await Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
+    unawaited(loadAlarms());
   }
 
-  Future<void> _navigateToLogs() async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const AlarmLogsScreen()),
+  // ---------------------------------------------------
+  // Actions sur une alarme
+  // ---------------------------------------------------
+  Future<void> _toggle(AlarmModel alarm, bool value) async {
+    setState(() {
+      alarm.isActive = value;
+      alarm.skippedUntil = null;
+      if (value) alarm.createdAt = DateTime.now().toUtc();
+    });
+    await alarmService.editAlarmById(context, alarm, showToast: value);
+    await loadAlarms();
+  }
+
+  Future<void> _delete(AlarmModel alarm) async {
+    final backup = alarm.copy();
+    setState(() => alarms.removeWhere((a) => a.id == alarm.id));
+    await alarmService.deleteAlarmById(context, alarm.id!);
+    await loadAlarms();
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(context.translate('alarm_deleted')),
+          action: SnackBarAction(
+            label: context.translate('undo'),
+            onPressed: () async {
+              await alarmService.saveAlarm(context, backup, showToast: false);
+              await loadAlarms();
+            },
+          ),
+        ),
+      );
+  }
+
+  Future<void> _onAction(AlarmModel alarm, AlarmTileAction action) async {
+    switch (action) {
+      case AlarmTileAction.skip:
+        alarm.skippedUntil = alarm.getNextOccurrence()?.toUtc();
+        await alarmService.editAlarmById(context, alarm);
+      case AlarmTileAction.unskip:
+        alarm.skippedUntil = null;
+        await alarmService.editAlarmById(context, alarm);
+      case AlarmTileAction.duplicate:
+        final copy = alarm.copy()
+          ..id = null
+          ..createdAt = DateTime.now().toUtc();
+        await alarmService.saveAlarm(context, copy);
+      case AlarmTileAction.delete:
+        await _delete(alarm);
+        return;
+    }
+    await loadAlarms();
+  }
+
+  // ---------------------------------------------------
+  // Mode vacances
+  // ---------------------------------------------------
+  Future<void> _vacation() async {
+    if (resumeAt != null) {
+      final action = await showModalBottomSheet<String>(
+        context: context,
+        builder: (ctx) => SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.edit_calendar_rounded),
+                title: Text(ctx.translate('vacation.change')),
+                onTap: () => Navigator.pop(ctx, 'change'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.alarm_on_rounded),
+                title: Text(ctx.translate('vacation.resume')),
+                onTap: () => Navigator.pop(ctx, 'resume'),
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
+      );
+      if (action == 'resume') return _setVacation(null);
+      if (action != 'change') return;
+    }
+    if (!mounted) return;
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final current = resumeAt?.subtract(const Duration(days: 1));
+    final picked = await showDatePicker(
+      context: context,
+      helpText: context.translate('vacation.pick'),
+      initialDate: current ?? today.add(const Duration(days: 6)),
+      firstDate: today,
+      lastDate: today.add(const Duration(days: 365)),
     );
+    if (picked != null) await _setVacation(picked);
+  }
+
+  Future<void> _setVacation(DateTime? lastDayOff) async {
+    await AppSettings.setVacation(lastDayOff);
+    if (!mounted) return;
+    await alarmService.syncAlarms(AlarmNotificationTexts.of(context));
+    await loadAlarms();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(
+        content: Text(context.translate(
+            lastDayOff == null ? 'vacation.resumed' : 'vacation.started')),
+      ));
+  }
+
+  Future<void> _cancelSnooze() async {
+    await alarmService.clearSnoozes(context);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(context.translate('snooze_canceled'))),
+    );
+    await loadAlarms();
   }
 
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
-        value: const SystemUiOverlayStyle(
-          statusBarColor: Colors.black,
-          statusBarIconBrightness: Brightness.light,
-          systemNavigationBarColor: Colors.black,
-          systemNavigationBarDividerColor: ThemeColors.primary,
-          systemNavigationBarIconBrightness: Brightness.light,
-        ),
-        child: Scaffold(
-          backgroundColor: Colors.black87,
-          appBar: AppBar(
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            title: Text(
-              context.translate('common.appTitle'),
-              style: const TextStyle(color: Colors.white),
-            ),
-            actions: [
-              // IconButton(
-              //   tooltip: context.translate('settings.title'), // optionnel
-              //   icon: const Icon(Icons.settings, color: Colors.white),
-              //   onPressed: _navigateToSettings,
-              // ),
-              IconButton(
-                tooltip: 'Logs', // ou context.translate('logs.title')
-                icon: const Icon(Icons.list_alt_rounded, color: Colors.white),
-                onPressed: _navigateToLogs,
-              ),
-            ],
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        systemNavigationBarColor: ThemeColors.night,
+        systemNavigationBarIconBrightness: Brightness.light,
+      ),
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(
+            context.translate('common.appTitle'),
+            style: const TextStyle(fontWeight: FontWeight.w600),
           ),
-          body: SafeArea(
-              child: Column(
-            children: [
-              if (getSnoozeAlarms && alarms.isEmpty)
-                NextAlarmSet(reloadAlarms: loadAlarms),
-              if (alarms.isNotEmpty) ...[
-                NextAlarmSet(reloadAlarms: loadAlarms),
-                Expanded(
-                    child: ListView.builder(
-                  itemCount: alarms.length,
-                  itemBuilder: (context, index) {
-                    final alarm = alarms[index];
-                    return Card(
-                      color: Colors.white.withValues(alpha: 0.13),
-                      margin: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 8),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                      elevation: 4,
-                      child: AlarmTile(
-                          key: Key(alarm.id.toString()),
-                          alarm: alarm,
-                          onPressed: () =>
-                              navigateToAlarmEditScreen(alarm, index: index),
-                          onDismissed: () async {
-                            final removedAlarm = alarms.removeAt(index);
-                            setState(() {});
-                            await alarmService
-                                .deleteAlarmById(context, removedAlarm.id!,
-                                    reschedule: true)
-                                .then((_) => loadAlarms())
-                                .catchError((error) {
-                              // Réinsère l'élément si une erreur survient
-                              setState(() {
-                                alarms.insert(index, removedAlarm);
-                              });
-                            });
-                          },
-                          onToggleActive: (value) async {
-                            setState(() {
-                              alarm.isActive = value;
-                              alarm.createdAt = DateTime.now();
-                            });
-                            await alarmService
-                                .editAlarmById(context, alarm)
-                                .then((_) => loadAlarms());
-                          }),
-                    );
-                  },
-                )),
-              ] else
-                Expanded(
-                    child: Center(
-                  child: ElevatedButton.icon(
-                    onPressed: () =>
-                        navigateToAlarmEditScreen(null, index: alarms.length),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Theme.of(context).colorScheme.primary,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(
-                            24), // ← change ici pour arrondir plus ou moins
+          actions: [
+            IconButton(
+              tooltip: context.translate('planning.title'),
+              icon: const Icon(Icons.calendar_view_week_rounded),
+              onPressed: () => _navigateTo(const PlanningScreen()),
+            ),
+            IconButton(
+              tooltip: context.translate('vacation.title'),
+              icon: Icon(
+                resumeAt != null
+                    ? Icons.beach_access_rounded
+                    : Icons.beach_access_outlined,
+                color: resumeAt != null ? ThemeColors.secondary : null,
+              ),
+              onPressed: _vacation,
+            ),
+            IconButton(
+              tooltip: context.translate('settings.title'),
+              icon: const Icon(Icons.settings_outlined),
+              onPressed: () => _navigateTo(const SettingsScreen()),
+            ),
+            const SizedBox(width: 4),
+          ],
+        ),
+        body: !loaded
+            ? const SizedBox.shrink()
+            : RefreshIndicator(
+                onRefresh: _resync,
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 100),
+                  children: [
+                    NextAlarmSet(
+                      next: next,
+                      snooze: snooze,
+                      onCancelSnooze: _cancelSnooze,
+                      resumeAt: resumeAt,
+                      onEndVacation: () => _setVacation(null),
+                    ),
+                    const SizedBox(height: 24),
+                    if (alarms.isEmpty)
+                      _EmptyState(
+                        onCreate: () => navigateToAlarmEditScreen(null),
+                      )
+                    else ...[
+                      Padding(
+                        padding: const EdgeInsets.only(left: 4, bottom: 10),
+                        child: Text(
+                          context.translate('alarms.title'),
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleMedium
+                              ?.copyWith(color: ThemeColors.textMuted),
+                        ),
                       ),
-                      padding: EdgeInsets.all(16.0),
-                    ),
-                    icon: Icon(
-                      Icons.alarm_add_rounded,
-                      size: 33,
-                      color: Colors.white,
-                    ),
-                    label: Text(
-                      context.translate('alarms.new'),
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleLarge
-                          ?.copyWith(color: Colors.white),
-                    ),
-                  ),
-                )),
-              DevMeUpWidget()
-            ],
-          )),
-          floatingActionButton: alarms.isNotEmpty
-              ? Padding(
-                  padding: const EdgeInsets.all(10),
-                  child: FloatingActionButton(
-                    onPressed: () =>
-                        navigateToAlarmEditScreen(null, index: alarms.length),
-                    backgroundColor: Theme.of(context).colorScheme.primary,
-                    child: Icon(Icons.alarm_add_rounded,
-                        size: 33,
-                        semanticLabel: context.translate('alarms.new')),
-                  ),
-                )
-              : null,
-          floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-        ));
+                      for (final alarm in alarms)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: AlarmTile(
+                            key: ValueKey('alarm-${alarm.id}'),
+                            alarm: alarm,
+                            resumeAt: resumeAt,
+                            onPressed: () => navigateToAlarmEditScreen(alarm),
+                            onDismissed: () => _delete(alarm),
+                            onToggleActive: (v) => _toggle(alarm, v),
+                            onAction: (a) => _onAction(alarm, a),
+                          ),
+                        ),
+                    ],
+                    const SizedBox(height: 16),
+                    const Center(child: DevMeUpWidget()),
+                  ],
+                ),
+              ),
+        floatingActionButton: alarms.isNotEmpty
+            ? FloatingActionButton.extended(
+                onPressed: () => navigateToAlarmEditScreen(null),
+                icon: const Icon(Icons.add_alarm_rounded),
+                label: Text(context.translate('alarms.new')),
+              )
+            : null,
+      ),
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState({required this.onCreate});
+
+  final VoidCallback onCreate;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 32),
+      child: Column(
+        children: [
+          Container(
+            width: 96,
+            height: 96,
+            decoration: const BoxDecoration(
+              color: ThemeColors.nightSurfaceHigh,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.alarm_add_rounded,
+                size: 44, color: ThemeColors.secondary),
+          ),
+          const SizedBox(height: 20),
+          Text(context.translate('empty.title'), style: textTheme.titleLarge),
+          const SizedBox(height: 8),
+          Text(
+            context.translate('empty.subtitle'),
+            textAlign: TextAlign.center,
+            style: textTheme.bodyMedium?.copyWith(color: ThemeColors.textMuted),
+          ),
+          const SizedBox(height: 24),
+          FilledButton.icon(
+            onPressed: onCreate,
+            icon: const Icon(Icons.add_rounded),
+            label: Text(context.translate('alarms.new')),
+          ),
+        ],
+      ),
+    );
   }
 }

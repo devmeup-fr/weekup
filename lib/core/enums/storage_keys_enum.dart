@@ -13,5 +13,11 @@ enum PrefStorageKeys {
   lastUserConnected,
   serialsAvailable,
   lastUpdateAiviaList,
-  isCelsius;
+  isCelsius,
+  snoozeMinutes,
+  maxSnoozes,
+  fadeSeconds,
+  snoozeChainCount,
+  snoozeChainAt,
+  vacationResumeAt;
 }

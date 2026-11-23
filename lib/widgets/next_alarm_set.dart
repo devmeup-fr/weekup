@@ -1,151 +1,206 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:weekup/core/utils/extension_util.dart';
 import 'package:weekup/core/utils/localization_util.dart';
 import 'package:weekup/models/alarm_model.dart';
-import 'package:weekup/services/alarm_service.dart';
+import 'package:weekup/theme/colors.dart';
+import 'package:weekup/utils/alarm_format.dart';
 
-import '../core/blocs/locale_cubit.dart';
+/// Carte d'en-tête : prochaine alarme + compte à rebours + rappel différé.
+class NextAlarmSet extends StatelessWidget {
+  const NextAlarmSet({
+    super.key,
+    required this.next,
+    this.snooze,
+    required this.onCancelSnooze,
+    this.resumeAt,
+    this.onEndVacation,
+  });
 
-class NextAlarmSet extends StatefulWidget {
-  final Function reloadAlarms;
-
-  const NextAlarmSet({super.key, required this.reloadAlarms});
-
-  @override
-  State<NextAlarmSet> createState() => _NextAlarmSetState();
-}
-
-class _NextAlarmSetState extends State<NextAlarmSet> {
-  late AlarmService alarmService;
-
-  @override
-  void initState() {
-    super.initState();
-    alarmService = AlarmService();
-  }
-
-  Future<void> _cancelSnooze(AlarmModel snooze) async {
-    final id = snooze.id;
-    if (id == null) return;
-
-    await alarmService.deleteAlarmById(context, id, reschedule: true);
-
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(context.translate('snooze_canceled'))),
-    );
-
-    setState(() {});
-    widget.reloadAlarms();
-  }
+  final ({AlarmModel alarm, DateTime date})? next;
+  final AlarmModel? snooze;
+  final VoidCallback onCancelSnooze;
+  final DateTime? resumeAt;
+  final VoidCallback? onEndVacation;
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<AlarmModel?>(
-      future: alarmService.findNextAlarm(context),
-      builder: (context, snapshot) {
-        final nextAlarm = snapshot.data;
+    final textTheme = Theme.of(context).textTheme;
+    final next = this.next;
 
-        if (nextAlarm?.getNextOccurrence() != null) {
-          final isSnooze = nextAlarm?.isSnooze == true;
-
-          return Container(
-            width: double.infinity,
-            constraints: const BoxConstraints(minHeight: 160),
-            padding: const EdgeInsets.all(16),
-            decoration: const BoxDecoration(color: Colors.transparent),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Text(
-                  context.translate('nextDateTitle'),
-                  textAlign: TextAlign.center,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.displaySmall?.copyWith(color: Colors.white),
+    final vacation = resumeAt == null
+        ? null
+        : Padding(
+            padding: const EdgeInsets.only(top: 16),
+            child: _Banner(
+              icon: Icons.beach_access_rounded,
+              text: context.translate('vacation.banner', translationParams: {
+                'day': formatRelativeDay(
+                  context,
+                  resumeAt!.subtract(const Duration(days: 1)),
+                  inSentence: true,
                 ),
-                const SizedBox(height: 5),
-                BlocBuilder<LocaleCubit, Locale>(
-                  builder: (context, state) => Text(
-                    nextAlarm!.getNextOccurrence()!.formatDateWS(
-                          state.languageCode,
-                        ),
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodyLarge?.copyWith(color: Colors.grey),
-                  ),
-                ),
-                // --- Ruban Snooze + action Annuler ---
-                if (isSnooze) ...[
-                  const SizedBox(height: 12),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.08),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.white.withOpacity(0.15)),
-                    ),
-                    child: Column(
-                      children: [
-                        Row(
-                          children: [
-                            const Icon(
-                              Icons.snooze,
-                              size: 18,
-                              color: Colors.white,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                context.translate('snooze_explainer'),
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodyMedium
-                                    ?.copyWith(color: Colors.white),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: OutlinedButton.icon(
-                            onPressed: () => _cancelSnooze(nextAlarm!),
-                            icon: const Icon(Icons.cancel),
-                            label: Text(context.translate('cancel_snooze')),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: Colors.white,
-                              side: BorderSide(
-                                color: Colors.white.withOpacity(0.4),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ],
+              }),
+              action: context.translate('vacation.resume_short'),
+              onAction: onEndVacation,
             ),
           );
-        }
 
-        return Container(
-          width: double.infinity,
-          height: MediaQuery.of(context).size.height * 0.25,
-          decoration: const BoxDecoration(color: Colors.transparent),
-          alignment: Alignment.center,
-          child: Text(
-            context.translate('noAlarmEnabled'),
-            style: const TextStyle(color: Colors.white, fontSize: 16),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(22, 20, 22, 20),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(28),
+        gradient: const LinearGradient(
+          colors: [ThemeColors.dusk, ThemeColors.primary],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: ThemeColors.dusk.withValues(alpha: 0.35),
+            blurRadius: 24,
+            offset: const Offset(0, 10),
           ),
-        );
-      },
+        ],
+      ),
+      child: next == null
+          ? Column(
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.bedtime_rounded,
+                        color: ThemeColors.secondary, size: 32),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Text(
+                        context.translate('noAlarmEnabled'),
+                        style: textTheme.titleMedium
+                            ?.copyWith(color: Colors.white),
+                      ),
+                    ),
+                  ],
+                ),
+                if (vacation != null) vacation,
+              ],
+            )
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      next.alarm.isSnooze
+                          ? Icons.snooze_rounded
+                          : Icons.alarm_on_rounded,
+                      size: 18,
+                      color: ThemeColors.secondary,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      context.translate('nextDateTitle').toUpperCase(),
+                      style: textTheme.labelMedium?.copyWith(
+                        color: ThemeColors.secondary,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      formatHourMinute(next.date),
+                      style: textTheme.displayLarge?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w300,
+                        height: 1,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 6),
+                        child: Text(
+                          formatRelativeDay(context, next.date),
+                          style: textTheme.titleMedium
+                              ?.copyWith(color: Colors.white70),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  context.translate('ringsIn', translationParams: {
+                    'duration': formatCountdown(
+                        context, next.date.difference(DateTime.now())),
+                  }),
+                  style: textTheme.bodyLarge?.copyWith(color: Colors.white),
+                ),
+                if (next.alarm.hasTitle && !next.alarm.isSnooze)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(
+                      next.alarm.title!,
+                      style: textTheme.bodyMedium
+                          ?.copyWith(color: ThemeColors.textMuted),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                if (snooze != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 16),
+                    child: _Banner(
+                      icon: Icons.snooze_rounded,
+                      text: context
+                          .translate('snooze_banner', translationParams: {
+                        'time': formatHourMinute(
+                            snooze!.getNextOccurrence() ?? next.date),
+                      }),
+                      action: context.translate('cancel'),
+                      onAction: onCancelSnooze,
+                    ),
+                  ),
+                if (vacation != null) vacation,
+              ],
+            ),
+    );
+  }
+}
+
+class _Banner extends StatelessWidget {
+  const _Banner({
+    required this.icon,
+    required this.text,
+    required this.action,
+    required this.onAction,
+  });
+
+  final IconData icon;
+  final String text;
+  final String action;
+  final VoidCallback? onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 6, 6, 6),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.25),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: Colors.white),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(text, style: const TextStyle(color: Colors.white)),
+          ),
+          TextButton(onPressed: onAction, child: Text(action)),
+        ],
+      ),
     );
   }
 }
