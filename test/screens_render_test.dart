@@ -85,7 +85,8 @@ Map<String, Object> _prefsWithAlarms() {
         title: 'Boulot')
       ..skipHolidays = true,
     make(2, 9, 30, [false, false, false, false, false, true, true],
-        title: 'Grasse mat\''),
+        title: 'Grasse mat\'')
+      ..ignoreVacation = true,
     make(3, 7, 15, [true, false, true, false, false, false, false],
         weeks: 2, title: 'Piscine'),
     make(4, 5, 0, List.filled(7, false), active: false),

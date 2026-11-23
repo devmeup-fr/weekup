@@ -151,7 +151,10 @@
         "resume_short": "Reprendre",
         "resumed": "Les alarmes ont repris.",
         "started": "Bonnes vacances ! Les alarmes récurrentes sont en pause.",
-        "banner": "En vacances jusqu'à {day} inclus"
+        "banner": "En vacances jusqu'à {day} inclus",
+        "ignore": "Sonne aussi en vacances",
+        "ignore_hint": "Ignore le mode vacances (médicament, animal…)",
+        "ignore_short": "Même en vacances"
     },
     "planning": {
         "title": "Planning",

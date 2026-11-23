@@ -83,4 +83,31 @@ void main() {
       (25, OccurrenceExclusion.holiday),
     ]);
   });
+
+  test('« sonne aussi en vacances » ignore la pause', () {
+    final now = DateTime(2026, 12, 18, 8);
+    final resumeAt = DateTime(2027, 1, 4);
+    final pills = _weekdayAlarm(skipHolidays: false)..ignoreVacation = true;
+    expect(
+      pills.getNextOccurrence(now: now, resumeAt: resumeAt),
+      DateTime(2026, 12, 21, 7),
+    );
+    final week = pills.occurrencesBetween(
+      DateTime(2026, 12, 21),
+      DateTime(2026, 12, 26),
+      resumeAt: resumeAt,
+    );
+    expect(week.every((o) => o.rings), isTrue);
+  });
+
+  test('« sonne aussi en vacances » respecte toujours les jours fériés', () {
+    final alarm = _weekdayAlarm()..ignoreVacation = true;
+    expect(
+      alarm.getNextOccurrence(
+        now: DateTime(2026, 12, 24, 8),
+        resumeAt: DateTime(2027, 1, 4),
+      ),
+      DateTime(2026, 12, 28, 7),
+    );
+  });
 }

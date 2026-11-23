@@ -151,7 +151,10 @@
         "resume_short": "Resume",
         "resumed": "Alarms resumed.",
         "started": "Enjoy your time off! Recurring alarms are paused.",
-        "banner": "Off until {day} included"
+        "banner": "Off until {day} included",
+        "ignore": "Rings during holidays too",
+        "ignore_hint": "Ignores holiday mode (medication, pets…)",
+        "ignore_short": "Even on holiday"
     },
     "planning": {
         "title": "Planner",

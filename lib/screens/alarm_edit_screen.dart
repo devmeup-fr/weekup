@@ -76,6 +76,7 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
   late List<bool> selectedDays;
   late int recurrenceWeeks;
   late bool skipHolidays;
+  late bool ignoreVacation;
   DateTime? resumeAt;
 
   @override
@@ -95,6 +96,7 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
     final alarm = widget.alarm;
     creating = alarm == null;
     skipHolidays = alarm?.skipHolidays ?? false;
+    ignoreVacation = alarm?.ignoreVacation ?? false;
     final now = DateTime.now();
 
     if (alarm == null) {
@@ -176,6 +178,7 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
       selectedDays: List<bool>.from(selectedDays),
       recurrenceWeeks: recurrenceWeeks,
       skipHolidays: skipHolidays,
+      ignoreVacation: ignoreVacation,
       createdAt: now,
       createdFor: createdFor,
     );
@@ -713,7 +716,7 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
                                         nextDate.difference(DateTime.now())),
                                   })}',
                         key: ValueKey(
-                            '$hour:$minute:$selectedDays:$createdFor:$skipHolidays'),
+                            '$hour:$minute:$selectedDays:$createdFor:$skipHolidays:$ignoreVacation'),
                         style: textTheme.bodyLarge
                             ?.copyWith(color: ThemeColors.secondary),
                       ),
@@ -750,6 +753,18 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
                             style: mutedStyle),
                         value: skipHolidays,
                         onChanged: (v) => setState(() => skipHolidays = v),
+                      ),
+                      const Divider(),
+                      SwitchListTile(
+                        contentPadding: const EdgeInsets.fromLTRB(16, 6, 12, 6),
+                        secondary: const Icon(Icons.beach_access_outlined),
+                        title: Text(context.translate('vacation.ignore')),
+                        subtitle: Text(
+                          context.translate('vacation.ignore_hint'),
+                          style: mutedStyle,
+                        ),
+                        value: ignoreVacation,
+                        onChanged: (v) => setState(() => ignoreVacation = v),
                       ),
                     ],
                     const Divider(),

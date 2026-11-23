@@ -48,6 +48,9 @@ class AlarmModel {
   /// Ne pas sonner les jours fériés (alarmes récurrentes uniquement).
   bool skipHolidays;
 
+  /// Sonne même en mode vacances (médicament, animal…).
+  bool ignoreVacation;
+
   // Snooze params
   bool isSnooze;
   int countSnooze;
@@ -70,6 +73,7 @@ class AlarmModel {
     DateTime? createdFor,
     this.skippedUntil,
     this.skipHolidays = false,
+    this.ignoreVacation = false,
     this.isSnooze = false,
     this.countSnooze = 0,
     this.snoozeOfId,
@@ -120,6 +124,7 @@ class AlarmModel {
       'createdFor': createdFor?.toUtc().toIso8601String(),
       'skippedUntil': skippedUntil?.toUtc().toIso8601String(),
       'skipHolidays': skipHolidays,
+      'ignoreVacation': ignoreVacation,
       'isSnooze': isSnooze,
       'countSnooze': countSnooze,
       'snoozeOfId': snoozeOfId,
@@ -150,6 +155,7 @@ class AlarmModel {
           ? DateTime.parse(map['skippedUntil'] as String)
           : null,
       skipHolidays: map['skipHolidays'] as bool? ?? false,
+      ignoreVacation: map['ignoreVacation'] as bool? ?? false,
       isSnooze: map['isSnooze'] as bool? ?? false,
       countSnooze: map['countSnooze'] as int? ?? 0,
       snoozeOfId: map['snoozeOfId'] as int?,
@@ -229,7 +235,7 @@ class AlarmModel {
 
       final candidate = _at(d);
       OccurrenceExclusion? excluded;
-      if (resumeAt != null && candidate.isBefore(resumeAt)) {
+      if (resumeAt != null && !ignoreVacation && candidate.isBefore(resumeAt)) {
         excluded = OccurrenceExclusion.paused;
       } else if (skipHolidays && holidayOn(d) != null) {
         excluded = OccurrenceExclusion.holiday;

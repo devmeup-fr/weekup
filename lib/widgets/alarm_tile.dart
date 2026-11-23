@@ -30,7 +30,8 @@ class AlarmTile extends StatelessWidget {
     final active = alarm.isActive;
     final skipping = alarm.isSkipping();
     final next = alarm.getNextOccurrence(resumeAt: resumeAt);
-    final paused = resumeAt != null && !alarm.isOneShot && active;
+    final paused =
+        resumeAt != null && !alarm.isOneShot && !alarm.ignoreVacation && active;
     final mainColor = active ? Colors.white : ThemeColors.textFaint;
     final subColor = active ? ThemeColors.textMuted : ThemeColors.textFaint;
 
@@ -133,10 +134,16 @@ class AlarmTile extends StatelessWidget {
                           ),
                         ],
                       ),
-                      if (alarm.skipHolidays && !alarm.isOneShot) ...[
+                      if ((alarm.skipHolidays || alarm.ignoreVacation) &&
+                          !alarm.isOneShot) ...[
                         const SizedBox(height: 2),
                         Text(
-                          context.translate('holidays.off_short'),
+                          [
+                            if (alarm.skipHolidays)
+                              context.translate('holidays.off_short'),
+                            if (alarm.ignoreVacation)
+                              context.translate('vacation.ignore_short'),
+                          ].join(' · '),
                           style: textTheme.bodySmall
                               ?.copyWith(color: ThemeColors.textFaint),
                         ),
