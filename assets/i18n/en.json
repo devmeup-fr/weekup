@@ -182,5 +182,15 @@
         }
     },
     "alarm_name_hint": "Alarm name (optional)",
-    "sound": "Sound"
+    "sound": "Sound",
+    "upcoming": {
+        "section": "Before it rings",
+        "setting": "Notify before the alarm",
+        "setting_hint": "A notification lets you dismiss the next ring",
+        "title": "Alarm at {time}",
+        "title_named": "{title} · {time}",
+        "body": "Coming up. Dismiss it if you're already up.",
+        "ignore": "Dismiss",
+        "channel": "Upcoming alarms"
+    }
 }

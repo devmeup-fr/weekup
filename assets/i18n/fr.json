@@ -182,5 +182,15 @@
         }
     },
     "alarm_name_hint": "Nom de l'alarme (facultatif)",
-    "sound": "Son"
+    "sound": "Son",
+    "upcoming": {
+        "section": "Avant la sonnerie",
+        "setting": "Prévenir avant l'alarme",
+        "setting_hint": "Une notification permet d'ignorer la prochaine sonnerie",
+        "title": "Alarme à {time}",
+        "title_named": "{title} · {time}",
+        "body": "Bientôt. Vous pouvez l'ignorer si vous êtes déjà levé.",
+        "ignore": "Ignorer",
+        "channel": "Alarmes imminentes"
+    }
 }

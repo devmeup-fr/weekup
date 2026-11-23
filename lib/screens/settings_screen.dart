@@ -138,6 +138,15 @@ class _SettingsScreenState extends State<SettingsScreen>
       ? context.translate('settings.off')
       : context.translate('duration.seconds', translationParams: {'n': '$s'});
 
+  String _lead(int m) {
+    if (m == 0) return context.translate('settings.off');
+    if (m % 60 == 0) {
+      return context
+          .translate('duration.hours', translationParams: {'n': '${m ~/ 60}'});
+    }
+    return _minutes(m);
+  }
+
   Widget _permissionTile(Permission p) {
     final status = _status[p];
     final granted = status?.isGranted ?? false;
@@ -223,6 +232,27 @@ class _SettingsScreenState extends State<SettingsScreen>
                         label: _fade,
                       );
                       if (v != null) await _update(s.copyWith(fadeSeconds: v));
+                    },
+                  ),
+                ]),
+                _header(context.translate('upcoming.section')),
+                _card([
+                  ListTile(
+                    leading: const Icon(Icons.notifications_active_outlined),
+                    title: Text(context.translate('upcoming.setting')),
+                    subtitle: Text(context.translate('upcoming.setting_hint'),
+                        style: const TextStyle(color: ThemeColors.textMuted)),
+                    trailing: _value(_lead(s.upcomingMinutes)),
+                    onTap: () async {
+                      final v = await _choose<int>(
+                        title: context.translate('upcoming.setting'),
+                        values: AppSettings.upcomingChoices,
+                        current: s.upcomingMinutes,
+                        label: _lead,
+                      );
+                      if (v != null) {
+                        await _update(s.copyWith(upcomingMinutes: v));
+                      }
                     },
                   ),
                 ]),

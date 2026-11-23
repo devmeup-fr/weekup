@@ -10,6 +10,7 @@ import 'package:weekup/core/enums/storage_keys_enum.dart';
 import 'package:weekup/core/utils/localization_util.dart';
 import 'package:weekup/models/alarm_model.dart';
 import 'package:weekup/services/settings_service.dart';
+import 'package:weekup/services/upcoming_notification_service.dart';
 import 'package:weekup/theme/colors.dart';
 import 'package:weekup/utils/alarm_format.dart';
 import 'package:weekup/utils/audio_utils.dart';
@@ -20,11 +21,13 @@ class AlarmNotificationTexts {
   final String defaultTitle;
   final String body;
   final String stopButton;
+  final UpcomingTexts upcoming;
 
   const AlarmNotificationTexts({
     required this.defaultTitle,
     required this.body,
     required this.stopButton,
+    required this.upcoming,
   });
 
   factory AlarmNotificationTexts.of(BuildContext context) {
@@ -32,6 +35,13 @@ class AlarmNotificationTexts {
       defaultTitle: context.translate('alarm_notification_title'),
       body: context.translate('alarm_notification_body'),
       stopButton: context.translate('stop_alarm_button'),
+      upcoming: UpcomingTexts(
+        title: context.translate('upcoming.title'),
+        titleNamed: context.translate('upcoming.title_named'),
+        body: context.translate('upcoming.body'),
+        ignore: context.translate('upcoming.ignore'),
+        channelName: context.translate('upcoming.channel'),
+      ),
     );
   }
 }
@@ -254,6 +264,24 @@ class AlarmService {
     await syncAlarms(texts);
   }
 
+  /// N'importe quelle sonnerie prévue peut être ignorée (depuis la
+  /// notification « alarme imminente ») : une alarme ponctuelle est
+  /// désactivée, une récurrente saute cette occurrence. Sans BuildContext :
+  /// appelé aussi quand l'app est fermée.
+  Future<void> ignoreOccurrence(int modelId, DateTime date) async {
+    final alarms = await getAlarms();
+    final idx = alarms.indexWhere((a) => a.id == modelId);
+    if (idx < 0) return;
+    final alarm = alarms[idx];
+    if (alarm.isOneShot) {
+      alarm.isActive = false;
+    } else if (alarm.skippedUntil == null ||
+        alarm.skippedUntil!.isBefore(date)) {
+      alarm.skippedUntil = date.toUtc();
+    }
+    await _persistAll(alarms);
+  }
+
   // ---------------------------------------------------
   // CLEANUP : désactive les one-shot passées, supprime les snoozes passés
   // ---------------------------------------------------
@@ -331,6 +359,7 @@ class AlarmService {
     // on ne garde que le premier.
     final usedTimes = <int>{};
     final now = DateTime.now();
+    final upcoming = <UpcomingEntry>[];
 
     for (final alarm in alarms) {
       if (alarm.id == null) continue;
@@ -364,16 +393,27 @@ class AlarmService {
             title: alarm.hasTitle ? alarm.title! : texts.defaultTitle,
             body: texts.body,
             stopButton: texts.stopButton,
-            icon: 'notification_icon',
+            icon: kNotificationIcon,
           ),
         );
 
         try {
           await Alarm.set(alarmSettings: alarmSettings);
+          upcoming.add(UpcomingEntry(pluginId, dates[k], alarm));
         } catch (e, s) {
           debugPrint('Echec Alarm.set($pluginId): $e\n$s');
         }
       }
+    }
+
+    try {
+      await UpcomingAlarmNotifications.sync(
+        upcoming,
+        texts.upcoming,
+        settings.upcomingMinutes,
+      );
+    } catch (e, s) {
+      debugPrint('Echec notifications « alarme imminente »: $e\n$s');
     }
   }
 

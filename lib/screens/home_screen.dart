@@ -10,6 +10,7 @@ import 'package:weekup/screens/settings_screen.dart';
 import 'package:weekup/services/alarm_log_service.dart';
 import 'package:weekup/services/alarm_service.dart';
 import 'package:weekup/services/settings_service.dart';
+import 'package:weekup/services/upcoming_notification_service.dart';
 import 'package:weekup/theme/colors.dart';
 import 'package:weekup/widgets/devmeup_widget.dart';
 import 'package:weekup/widgets/next_alarm_set.dart';
@@ -44,6 +45,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     alarmService = AlarmService();
     ringSubscription ??= Alarm.ringStream.stream.listen(navigateToRingScreen);
+    UpcomingAlarmNotifications.onChanged = () => unawaited(loadAlarms());
     _ticker = Timer.periodic(const Duration(seconds: 30), (_) {
       if (mounted) setState(() {});
     });

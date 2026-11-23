@@ -6,15 +6,20 @@ class AppSettings {
   static const snoozeChoices = [5, 10, 15, 20, 30];
   static const maxSnoozeChoices = [1, 2, 3, 5, 10];
   static const fadeChoices = [0, 10, 30, 60];
+  static const upcomingChoices = [0, 15, 30, 60, 120];
 
   final int snoozeMinutes;
   final int maxSnoozes;
   final int fadeSeconds;
 
+  /// Délai de la notification « alarme imminente » (0 = désactivée).
+  final int upcomingMinutes;
+
   const AppSettings({
     this.snoozeMinutes = 10,
     this.maxSnoozes = 3,
     this.fadeSeconds = 10,
+    this.upcomingMinutes = 30,
   });
 
   /// Mode vacances : date (locale, minuit) à laquelle les alarmes
@@ -46,12 +51,17 @@ class AppSettings {
     );
   }
 
-  AppSettings copyWith(
-      {int? snoozeMinutes, int? maxSnoozes, int? fadeSeconds}) {
+  AppSettings copyWith({
+    int? snoozeMinutes,
+    int? maxSnoozes,
+    int? fadeSeconds,
+    int? upcomingMinutes,
+  }) {
     return AppSettings(
       snoozeMinutes: snoozeMinutes ?? this.snoozeMinutes,
       maxSnoozes: maxSnoozes ?? this.maxSnoozes,
       fadeSeconds: fadeSeconds ?? this.fadeSeconds,
+      upcomingMinutes: upcomingMinutes ?? this.upcomingMinutes,
     );
   }
 
@@ -65,6 +75,8 @@ class AppSettings {
           prefs.getInt(PrefStorageKeys.maxSnoozes.name) ?? defaults.maxSnoozes,
       fadeSeconds: prefs.getInt(PrefStorageKeys.fadeSeconds.name) ??
           defaults.fadeSeconds,
+      upcomingMinutes: prefs.getInt(PrefStorageKeys.upcomingMinutes.name) ??
+          defaults.upcomingMinutes,
     );
   }
 
@@ -73,5 +85,6 @@ class AppSettings {
     await prefs.setInt(PrefStorageKeys.snoozeMinutes.name, snoozeMinutes);
     await prefs.setInt(PrefStorageKeys.maxSnoozes.name, maxSnoozes);
     await prefs.setInt(PrefStorageKeys.fadeSeconds.name, fadeSeconds);
+    await prefs.setInt(PrefStorageKeys.upcomingMinutes.name, upcomingMinutes);
   }
 }
