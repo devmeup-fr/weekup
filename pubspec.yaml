@@ -19,7 +19,8 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   flutter_secure_storage: ^9.2.4
-  google_fonts: ^6.2.1
+  google_fonts: ^6.3.3
+  intl: any
   package_info_plus: ^8.0.2
   path: ^1.9.0
   path_provider: ^2.1.3
@@ -45,6 +46,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/i18n/
+    - assets/google_fonts/
     - assets/images/
     - assets/musics/
 
