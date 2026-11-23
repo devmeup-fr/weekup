@@ -172,6 +172,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       ..showSnackBar(
         SnackBar(
           content: Text(context.translate('alarm_deleted')),
+          // Avec un bouton, Flutter garde le SnackBar affiché par défaut
+          persist: false,
+          duration: const Duration(seconds: 4),
           action: SnackBarAction(
             label: context.translate('undo'),
             onPressed: () async {
