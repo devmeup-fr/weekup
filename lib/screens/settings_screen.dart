@@ -138,6 +138,9 @@ class _SettingsScreenState extends State<SettingsScreen>
       ? context.translate('settings.off')
       : context.translate('duration.seconds', translationParams: {'n': '$s'});
 
+  String _silence(int m) =>
+      m == 0 ? context.translate('settings.never') : _minutes(m);
+
   String _lead(int m) {
     if (m == 0) return context.translate('settings.off');
     if (m % 60 == 0) {
@@ -216,6 +219,24 @@ class _SettingsScreenState extends State<SettingsScreen>
                         label: (n) => '$n',
                       );
                       if (v != null) await _update(s.copyWith(maxSnoozes: v));
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.timer_off_outlined),
+                    title: Text(context.translate('settings.silence')),
+                    subtitle: Text(context.translate('settings.silence_hint'),
+                        style: const TextStyle(color: ThemeColors.textMuted)),
+                    trailing: _value(_silence(s.silenceAfterMinutes)),
+                    onTap: () async {
+                      final v = await _choose<int>(
+                        title: context.translate('settings.silence'),
+                        values: AppSettings.silenceChoices,
+                        current: s.silenceAfterMinutes,
+                        label: _silence,
+                      );
+                      if (v != null) {
+                        await _update(s.copyWith(silenceAfterMinutes: v));
+                      }
                     },
                   ),
                   ListTile(

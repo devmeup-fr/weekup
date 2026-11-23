@@ -39,6 +39,7 @@ class _AlarmRingScreenState extends State<AlarmRingScreen>
 
   int _remainingSnoozes = 1;
   int _snoozeMinutes = 10;
+  int _silenceAfterMinutes = 0;
 
   /// Volume de référence lu après la mise en route de l'alarme : le plugin
   /// règle lui-même le volume système, ce qui déclenche aussi l'écouteur.
@@ -67,6 +68,7 @@ class _AlarmRingScreenState extends State<AlarmRingScreen>
     if (!mounted) return;
     setState(() {
       _snoozeMinutes = settings.snoozeMinutes;
+      _silenceAfterMinutes = settings.silenceAfterMinutes;
       _remainingSnoozes = remaining;
     });
   }
@@ -101,6 +103,14 @@ class _AlarmRingScreenState extends State<AlarmRingScreen>
 
     setState(() => _now = DateTime.now());
 
+    // Personne n'a répondu : on coupe (compté depuis le début de la sonnerie)
+    if (_silenceAfterMinutes > 0 &&
+        _now.difference(widget.alarmSettings.dateTime) >=
+            Duration(minutes: _silenceAfterMinutes)) {
+      await _stopAlarm(missed: true);
+      return;
+    }
+
     // Arrêtée depuis la notification
     final isRinging = await Alarm.isRinging(widget.alarmSettings.id);
     if (!isRinging && !_stopped && mounted) {
@@ -108,7 +118,7 @@ class _AlarmRingScreenState extends State<AlarmRingScreen>
     }
   }
 
-  Future<void> _stopAlarm({bool snooze = false}) async {
+  Future<void> _stopAlarm({bool snooze = false, bool missed = false}) async {
     if (_stopped) return;
     _stopped = true;
     HapticFeedback.mediumImpact();
@@ -141,7 +151,7 @@ class _AlarmRingScreenState extends State<AlarmRingScreen>
       } else if (mounted) {
         await alarmService.saveAlarmLog(
           widget.alarmSettings,
-          action: AlarmLogAction.stop,
+          action: missed ? AlarmLogAction.missed : AlarmLogAction.stop,
         );
         if (mounted) await alarmService.clearSnoozes(context);
       }

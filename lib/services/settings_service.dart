@@ -7,6 +7,7 @@ class AppSettings {
   static const maxSnoozeChoices = [1, 2, 3, 5, 10];
   static const fadeChoices = [0, 10, 30, 60];
   static const upcomingChoices = [0, 15, 30, 60, 120];
+  static const silenceChoices = [0, 5, 10, 15, 30];
 
   final int snoozeMinutes;
   final int maxSnoozes;
@@ -15,11 +16,15 @@ class AppSettings {
   /// Délai de la notification « alarme imminente » (0 = désactivée).
   final int upcomingMinutes;
 
+  /// Arrêt automatique d'une sonnerie sans réponse (0 = jamais).
+  final int silenceAfterMinutes;
+
   const AppSettings({
     this.snoozeMinutes = 10,
     this.maxSnoozes = 3,
     this.fadeSeconds = 10,
     this.upcomingMinutes = 30,
+    this.silenceAfterMinutes = 10,
   });
 
   /// Mode vacances : date (locale, minuit) à laquelle les alarmes
@@ -56,12 +61,14 @@ class AppSettings {
     int? maxSnoozes,
     int? fadeSeconds,
     int? upcomingMinutes,
+    int? silenceAfterMinutes,
   }) {
     return AppSettings(
       snoozeMinutes: snoozeMinutes ?? this.snoozeMinutes,
       maxSnoozes: maxSnoozes ?? this.maxSnoozes,
       fadeSeconds: fadeSeconds ?? this.fadeSeconds,
       upcomingMinutes: upcomingMinutes ?? this.upcomingMinutes,
+      silenceAfterMinutes: silenceAfterMinutes ?? this.silenceAfterMinutes,
     );
   }
 
@@ -77,6 +84,9 @@ class AppSettings {
           defaults.fadeSeconds,
       upcomingMinutes: prefs.getInt(PrefStorageKeys.upcomingMinutes.name) ??
           defaults.upcomingMinutes,
+      silenceAfterMinutes:
+          prefs.getInt(PrefStorageKeys.silenceAfterMinutes.name) ??
+              defaults.silenceAfterMinutes,
     );
   }
 
@@ -86,5 +96,9 @@ class AppSettings {
     await prefs.setInt(PrefStorageKeys.maxSnoozes.name, maxSnoozes);
     await prefs.setInt(PrefStorageKeys.fadeSeconds.name, fadeSeconds);
     await prefs.setInt(PrefStorageKeys.upcomingMinutes.name, upcomingMinutes);
+    await prefs.setInt(
+      PrefStorageKeys.silenceAfterMinutes.name,
+      silenceAfterMinutes,
+    );
   }
 }

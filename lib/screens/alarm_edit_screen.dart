@@ -7,6 +7,7 @@ import 'package:volume_controller/volume_controller.dart';
 import 'package:weekup/core/utils/localization_util.dart';
 import 'package:weekup/models/alarm_model.dart';
 import 'package:weekup/services/alarm_service.dart';
+import 'package:weekup/services/custom_sound_service.dart';
 import 'package:weekup/services/settings_service.dart';
 import 'package:weekup/theme/colors.dart';
 import 'package:weekup/utils/alarm_format.dart';
@@ -42,6 +43,9 @@ String audioLabel(String file) => file
     .replaceAll('-', ' ')
     .replaceFirstMapped(RegExp(r'^[a-zA-Z]'), (m) => m.group(0)!.toUpperCase());
 
+/// Son joué si un son importé a disparu.
+const fallbackSound = 'default_alarm.mp3';
+
 enum _RepeatPreset { once, weekdays, weekend, everyday, custom }
 
 class AlarmEditScreen extends StatefulWidget {
@@ -72,6 +76,7 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
   late bool vibrate;
   late double volume;
   late String assetAudio;
+  List<CustomSound> customSounds = [];
 
   late List<bool> selectedDays;
   late int recurrenceWeeks;
@@ -89,6 +94,9 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
       _restoreVolume();
     });
 
+    CustomSoundService.list().then((l) {
+      if (mounted) setState(() => customSounds = l);
+    });
     AppSettings.vacationResumeAt().then((r) {
       if (mounted && r != null) setState(() => resumeAt = r);
     });
@@ -119,7 +127,8 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
       loopAudio = alarm.loopAudio;
       vibrate = alarm.vibrate;
       volume = alarm.volume != null ? alarm.volume! * 100 : 50;
-      assetAudio = audioOptions.contains(alarm.assetAudio)
+      assetAudio = audioOptions.contains(alarm.assetAudio) ||
+              CustomSoundService.isCustom(alarm.assetAudio)
           ? alarm.assetAudio
           : audioOptions.first;
       // Copie : ne jamais muter la liste du modèle (annulation possible)
@@ -228,7 +237,12 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
     VolumeController().setVolume(volume / 100);
     await audioPlayer.stop();
     await audioPlayer.setVolume(1);
-    await audioPlayer.play(AssetSource('musics/$file'));
+    if (CustomSoundService.isCustom(file)) {
+      final f = await CustomSoundService.fileFor(file);
+      await audioPlayer.play(DeviceFileSource(f.path));
+    } else {
+      await audioPlayer.play(AssetSource('musics/$file'));
+    }
     if (mounted) setState(() => playing = file);
   }
 
@@ -261,29 +275,42 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
                 child: ListView(
                   controller: controller,
                   children: [
-                    for (final file in audioOptions)
-                      ListTile(
-                        leading: IconButton(
-                          icon: Icon(
-                            playing == file
-                                ? Icons.stop_circle_rounded
-                                : Icons.play_circle_outline_rounded,
-                            color: playing == file
-                                ? ThemeColors.secondary
-                                : ThemeColors.textMuted,
-                          ),
-                          onPressed: () async {
-                            await _togglePreview(file);
-                            setSheetState(() {});
-                          },
-                        ),
-                        title: Text(audioLabel(file)),
-                        trailing: file == assetAudio
-                            ? const Icon(Icons.check_rounded,
-                                color: ThemeColors.secondary)
-                            : null,
-                        onTap: () => Navigator.pop(ctx, file),
+                    _soundHeader(ctx, ctx.translate('sounds.mine')),
+                    for (final sound in customSounds)
+                      _soundTile(
+                        ctx,
+                        setSheetState,
+                        sound.assetAudio,
+                        sound.name,
+                        onDelete: () async {
+                          await CustomSoundService.remove(sound);
+                          final l = await CustomSoundService.list();
+                          setState(() {
+                            customSounds = l;
+                            if (assetAudio == sound.assetAudio) {
+                              assetAudio = audioOptions.first;
+                            }
+                          });
+                          setSheetState(() {});
+                        },
                       ),
+                    ListTile(
+                      leading: const Icon(Icons.add_circle_outline_rounded,
+                          color: ThemeColors.secondary),
+                      title: Text(ctx.translate('sounds.add')),
+                      subtitle: Text(ctx.translate('sounds.add_hint'),
+                          style: const TextStyle(color: ThemeColors.textMuted)),
+                      onTap: () async {
+                        final sound = await CustomSoundService.pick();
+                        if (sound == null || !ctx.mounted) return;
+                        final l = await CustomSoundService.list();
+                        setState(() => customSounds = l);
+                        if (ctx.mounted) Navigator.pop(ctx, sound.assetAudio);
+                      },
+                    ),
+                    _soundHeader(ctx, ctx.translate('sounds.builtin')),
+                    for (final file in audioOptions)
+                      _soundTile(ctx, setSheetState, file, audioLabel(file)),
                   ],
                 ),
               ),
@@ -295,6 +322,63 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
     await _stopPreview();
     if (picked != null) setState(() => assetAudio = picked);
   }
+
+  Widget _soundHeader(BuildContext ctx, String text) => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
+        child: Text(
+          text.toUpperCase(),
+          style: Theme.of(ctx).textTheme.labelMedium?.copyWith(
+                color: ThemeColors.textMuted,
+                letterSpacing: 1.1,
+              ),
+        ),
+      );
+
+  Widget _soundTile(
+    BuildContext ctx,
+    StateSetter setSheetState,
+    String file,
+    String label, {
+    VoidCallback? onDelete,
+  }) {
+    final selected = file == assetAudio;
+    return ListTile(
+      leading: IconButton(
+        icon: Icon(
+          playing == file
+              ? Icons.stop_circle_rounded
+              : Icons.play_circle_outline_rounded,
+          color:
+              playing == file ? ThemeColors.secondary : ThemeColors.textMuted,
+        ),
+        onPressed: () async {
+          await _togglePreview(file);
+          setSheetState(() {});
+        },
+      ),
+      title: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (selected)
+            const Icon(Icons.check_rounded, color: ThemeColors.secondary),
+          if (onDelete != null)
+            IconButton(
+              tooltip: ctx.translate('delete'),
+              icon: const Icon(Icons.delete_outline_rounded,
+                  color: ThemeColors.textMuted),
+              onPressed: onDelete,
+            ),
+        ],
+      ),
+      onTap: () => Navigator.pop(ctx, file),
+    );
+  }
+
+  String _soundLabel(String file) => CustomSoundService.isCustom(file)
+      ? CustomSoundService.nameOf(file, customSounds) ??
+          audioLabel(fallbackSound)
+      : audioLabel(file);
 
   // ---------------------------------------------------
   // Date
@@ -801,7 +885,10 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
                     ListTile(
                       leading: const Icon(Icons.music_note_rounded),
                       title: Text(context.translate('select_audio')),
-                      subtitle: Text(audioLabel(assetAudio), style: mutedStyle),
+                      subtitle: Text(_soundLabel(assetAudio),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: mutedStyle),
                       trailing: IconButton(
                         tooltip: context.translate('preview'),
                         onPressed: () => _togglePreview(assetAudio),

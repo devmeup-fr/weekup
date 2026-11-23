@@ -20,5 +20,6 @@ enum PrefStorageKeys {
   snoozeChainCount,
   snoozeChainAt,
   vacationResumeAt,
-  upcomingMinutes;
+  upcomingMinutes,
+  silenceAfterMinutes;
 }

@@ -62,13 +62,17 @@
             "exact_alarm_hint": "To ring on the exact minute",
             "battery": "Battery optimization",
             "battery_hint": "Turn it off so the system can't block your alarm"
-        }
+        },
+        "silence": "Stop ringing after",
+        "silence_hint": "If nobody stops it",
+        "never": "Never"
     },
     "logs_action": {
         "ring": "Rang",
         "ring_snooze": "Snoozed alarm rang",
         "snooze": "Snoozed until {time}",
-        "stop": "Stopped"
+        "stop": "Stopped",
+        "missed": "Stopped, no answer"
     },
     "requesting_notification_permission": "Requesting notification permission...",
     "notification_permission_granted": "Notification permission granted.",
@@ -192,5 +196,11 @@
         "body": "Coming up. Dismiss it if you're already up.",
         "ignore": "Dismiss",
         "channel": "Upcoming alarms"
+    },
+    "sounds": {
+        "mine": "My sounds",
+        "builtin": "Built-in sounds",
+        "add": "Add a sound from your phone",
+        "add_hint": "Music or audio file"
     }
 }

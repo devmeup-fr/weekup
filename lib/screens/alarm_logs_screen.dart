@@ -58,6 +58,12 @@ class _AlarmLogsScreenState extends State<AlarmLogsScreen> {
           color: ThemeColors.success,
           label: context.translate('logs_action.stop'),
         );
+      case AlarmLogAction.missed:
+        return (
+          icon: Icons.notifications_paused_rounded,
+          color: ThemeColors.warning,
+          label: context.translate('logs_action.missed'),
+        );
       case AlarmLogAction.ring:
         return (
           icon: Icons.notifications_active_rounded,

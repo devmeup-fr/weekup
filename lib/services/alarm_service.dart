@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:weekup/core/enums/storage_keys_enum.dart';
 import 'package:weekup/core/utils/localization_util.dart';
 import 'package:weekup/models/alarm_model.dart';
+import 'package:weekup/services/next_alarm_widget_service.dart';
 import 'package:weekup/services/settings_service.dart';
 import 'package:weekup/services/upcoming_notification_service.dart';
 import 'package:weekup/theme/colors.dart';
@@ -22,12 +23,14 @@ class AlarmNotificationTexts {
   final String body;
   final String stopButton;
   final UpcomingTexts upcoming;
+  final NextAlarmWidgetTexts widget;
 
   const AlarmNotificationTexts({
     required this.defaultTitle,
     required this.body,
     required this.stopButton,
     required this.upcoming,
+    required this.widget,
   });
 
   factory AlarmNotificationTexts.of(BuildContext context) {
@@ -41,6 +44,14 @@ class AlarmNotificationTexts {
         body: context.translate('upcoming.body'),
         ignore: context.translate('upcoming.ignore'),
         channelName: context.translate('upcoming.channel'),
+      ),
+      widget: NextAlarmWidgetTexts(
+        header: context.translate('nextDateTitle'),
+        empty: context.translate('noAlarmEnabled'),
+        today: context.translate('day.today'),
+        tomorrow: context.translate('day.tomorrow'),
+        snooze: context.translate('logs_isSnooze'),
+        locale: Localizations.localeOf(context).languageCode,
       ),
     );
   }
@@ -360,6 +371,7 @@ class AlarmService {
     final usedTimes = <int>{};
     final now = DateTime.now();
     final upcoming = <UpcomingEntry>[];
+    final forWidget = <({DateTime date, AlarmModel alarm})>[];
 
     for (final alarm in alarms) {
       if (alarm.id == null) continue;
@@ -369,9 +381,9 @@ class AlarmService {
         resumeAt: resumeAt,
       );
       if (dates.isEmpty) continue;
+      forWidget.addAll(dates.map((d) => (date: d, alarm: alarm)));
 
-      final audioPath =
-          await resolveAudioOrDefault('assets/musics/${alarm.assetAudio}');
+      final audioPath = await resolveAlarmAudio(alarm.assetAudio);
 
       for (var k = 0; k < dates.length; k++) {
         final pluginId = alarm.id! * idFactor + k;
@@ -414,6 +426,12 @@ class AlarmService {
       );
     } catch (e, s) {
       debugPrint('Echec notifications « alarme imminente »: $e\n$s');
+    }
+
+    try {
+      await NextAlarmWidgetService.update(forWidget, texts.widget);
+    } catch (e, s) {
+      debugPrint('Echec mise à jour du widget: $e\n$s');
     }
   }
 

@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-enum AlarmLogAction { ring, snooze, stop }
+enum AlarmLogAction { ring, snooze, stop, missed }
 
 class AlarmLogModel {
   final int id;

@@ -62,13 +62,17 @@
             "exact_alarm_hint": "Pour sonner à la minute près",
             "battery": "Optimisation de batterie",
             "battery_hint": "Désactivez-la pour éviter que le système ne bloque l'alarme"
-        }
+        },
+        "silence": "Arrêter la sonnerie après",
+        "silence_hint": "Si personne ne l'arrête",
+        "never": "Jamais"
     },
     "logs_action": {
         "ring": "A sonné",
         "ring_snooze": "Rappel différé a sonné",
         "snooze": "Reportée à {time}",
-        "stop": "Arrêtée"
+        "stop": "Arrêtée",
+        "missed": "Arrêtée sans réponse"
     },
     "requesting_notification_permission": "Demande d'autorisation de notification...",
     "notification_permission_granted": "Autorisation de notification accordée.",
@@ -192,5 +196,11 @@
         "body": "Bientôt. Vous pouvez l'ignorer si vous êtes déjà levé.",
         "ignore": "Ignorer",
         "channel": "Alarmes imminentes"
+    },
+    "sounds": {
+        "mine": "Mes sons",
+        "builtin": "Sons intégrés",
+        "add": "Ajouter un son du téléphone",
+        "add_hint": "Musique ou fichier audio"
     }
 }
