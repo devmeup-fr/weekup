@@ -397,6 +397,11 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
                   fontWeight: isSelected ? FontWeight.w400 : FontWeight.w300,
                   color: isSelected ? Colors.white : ThemeColors.textFaint,
                   fontFeatures: const [FontFeature.tabularFigures()],
+                  // Ligne de la taille de la police, répartie également :
+                  // sinon les métriques de Roboto décalent les chiffres vers
+                  // le bas dans leur case.
+                  height: 1,
+                  leadingDistribution: TextLeadingDistribution.even,
                 ),
               ),
             );
