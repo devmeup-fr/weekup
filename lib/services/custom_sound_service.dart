@@ -67,16 +67,21 @@ class CustomSoundService {
 
   /// Ouvre le sélecteur de fichiers audio et importe le son choisi.
   static Future<CustomSound?> pick() async {
-    final result = await FilePicker.pickFiles(type: FileType.audio);
-    final path = result?.files.single.path;
-    if (path == null) return null;
+    final picked = await FilePicker.pickFile(type: FileType.audio);
+    if (picked == null) return null;
 
-    final source = File(path);
-    final ext = p.extension(path);
+    final ext = p.extension(picked.name);
     final file = '${DateTime.now().millisecondsSinceEpoch}$ext';
-    await source.copy(p.join((await _dir()).path, file));
+    final target = p.join((await _dir()).path, file);
+    // Pas de chemin local quand le sélecteur renvoie une URI content:// (Android).
+    final path = picked.path;
+    if (path != null) {
+      await File(path).copy(target);
+    } else {
+      await File(target).writeAsBytes(await picked.readAsBytes());
+    }
 
-    final sound = CustomSound(file, p.basenameWithoutExtension(path));
+    final sound = CustomSound(file, p.basenameWithoutExtension(picked.name));
     await _save([...await list(), sound]);
     return sound;
   }

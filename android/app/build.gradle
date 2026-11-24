@@ -1,7 +1,6 @@
 plugins {
     id "com.android.application"
-    id "kotlin-android"
-    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
+    // The Flutter Gradle Plugin must be applied after the Android Gradle plugin.
     id "dev.flutter.flutter-gradle-plugin"
 }
 
@@ -37,12 +36,8 @@ android {
     compileOptions {
         // Requis par flutter_local_notifications
         coreLibraryDesugaringEnabled true
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
-    }
-
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     defaultConfig {
@@ -72,6 +67,15 @@ android {
 
 flutter {
     source = "../.."
+}
+
+// KGP est appliqué par le plugin Gradle de Flutter (android.builtInKotlin=false) :
+// sans cible explicite, Kotlin compile pour le JDK courant et Gradle refuse
+// l'écart avec Java (17).
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
+    }
 }
 
 dependencies {
